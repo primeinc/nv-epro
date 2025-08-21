@@ -243,7 +243,7 @@ async function scrapePOs(startDate, endDate, label) {
     await sleep(THROTTLE_MS);
     
     console.log('Clicking CSV export...');
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: 300000 }); // 5 minute timeout
     await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
       const csvImage = images.find(img => img.src && img.src.includes('csv'));

@@ -287,24 +287,25 @@ async function main() {
   
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
-Nevada ePro PO Scraper CLI
+Nevada ePro Bid Scraper CLI
 
 Usage:
-  pnpm run po [month] [day] [year]
+  pnpm run bid [month] [day] [year]
   
 Examples:
-  pnpm run po                  # Current month
-  pnpm run po aug              # August of current year
-  pnpm run po 2025             # All of 2025 (up to today if current year)
-  pnpm run po 25               # All of 2025 (up to today if current year)
-  pnpm run po 2017             # ERROR: No data before 2018
-  pnpm run po aug 25           # All of August 2025
-  pnpm run po aug 21           # All of August 2021
-  pnpm run po 8 2025           # All of August 2025
-  pnpm run po aug 20 25        # August 20, 2025 only (single day)
-  pnpm run po aug 32 25        # ERROR: Invalid day
+  pnpm run bid                 # ALL BIDS (no date filter - ~2600+ records)
+  pnpm run bid aug             # August of current year
+  pnpm run bid 2025            # All of 2025 (up to today if current year)
+  pnpm run bid 25              # All of 2025 (up to today if current year)
+  pnpm run bid 2017            # ERROR: No data before 2018
+  pnpm run bid aug 25          # All of August 2025
+  pnpm run bid aug 21          # All of August 2021
+  pnpm run bid 8 2025          # All of August 2025
+  pnpm run bid aug 20 25       # August 20, 2025 only (single day)
+  pnpm run bid aug 32 25       # ERROR: Invalid day
   
 Format Rules:
+  - No args: ALL BIDS (no date filter)
   - 1 arg: year (18-99 or 2018+) OR month for current year
   - 2 args: month + year (whole month)
   - 3 args: month + day + year (single day)
@@ -314,8 +315,8 @@ Notes:
   - Day: 1-31 (validated for month)
   - Year: 18-99 (assumes 2000s) or full year (2018 minimum)
   - Data available from January 31, 2018 onwards
-  - PO export REQUIRES date range (no "all records" support)
-  - Use 'pnpm run bid' for bid data (supports no-date export)
+  - Bid export supports no-date "all records" mode
+  - Use 'pnpm run po' for PO data (requires date range)
 `);
     return;
   }

@@ -1,5 +1,34 @@
-node_modules
-old
-downloads
-.playwright-mcp
-output
+# Dependencies
+node_modules/
+
+# Lockfiles (only ignore non-pnpm lockfiles since we use pnpm)
+package-lock.json
+yarn.lock
+
+# Data folders (immutable runs)
+data/
+
+# Legacy folders (to be cleaned up)
+downloads/
+output/
+old/
+
+# Temporary files
+last_run.json
+*.log
+*.tmp
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Playwright
+.playwright-mcp/
+test-results/
+playwright-report/
+playwright/.cache/
