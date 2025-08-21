@@ -10,6 +10,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs').promises;
 const path = require('path');
+const { parse } = require('csv-parse/sync');
 const { buildUrl, isValidIdFormat } = require('../lib/nevada-epro-url-builder');
 
 // Helper to build bid holder list URLs
@@ -94,42 +95,44 @@ async function findRecentRun(dataset) {
  */
 async function extractSampleIds(csvPath, dataset, sampleSize, onlyWithHolderList = false) {
   const content = await fs.readFile(csvPath, 'utf8');
-  const lines = content.split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
+  
+  // Parse CSV using csv-parse library (handles BOM, quotes, etc.)
+  const records = parse(content, {
+    columns: true,
+    bom: true,
+    skip_empty_lines: true,
+    relax_quotes: true,
+    relax_column_count: true,
+    trim: true
+  });
+  
+  if (records.length === 0) return [];
   
   const ids = [];
   const idColumn = getIdColumn(dataset);
   
-  // Parse CSV header to find ID column index
-  const header = parseCSVLine(lines[0]);
-  const idIndex = header.indexOf(idColumn);
-  if (idIndex === -1) return [];
-  
-  // For bids with holder list filter
-  let holderListIndex = -1;
-  if (onlyWithHolderList && dataset === 'bids') {
-    holderListIndex = header.indexOf('Bid Holder List');
-  }
-  
-  // Extract IDs from data rows
-  for (let i = 1; i < lines.length && ids.length < sampleSize; i++) {
-    const values = parseCSVLine(lines[i]);
-    if (values[idIndex]) {
-      let id = values[idIndex];
+  // Extract IDs from records
+  for (let i = 0; i < records.length && ids.length < sampleSize; i++) {
+    const record = records[i];
+    const id = record[idColumn];
+    
+    if (id) {
+      let cleanId = id;
       
       // For purchase orders, handle line item IDs like "99SWC-NV25-25281:2079"
-      if (dataset === 'purchase_orders' && id.includes(':')) {
-        id = id.split(':')[0]; // Use base PO ID
+      if (dataset === 'purchase_orders' && cleanId.includes(':')) {
+        cleanId = cleanId.split(':')[0]; // Use base PO ID
       }
       
       // Filter for bids with holder lists if requested
-      if (onlyWithHolderList && holderListIndex !== -1) {
-        const holderListValue = values[holderListIndex];
-        if (holderListValue && holderListValue.includes('View List')) {
-          ids.push(id);
+      if (onlyWithHolderList && dataset === 'bids') {
+        const holderListValue = record['Bid Holder List'];
+        // Nevada ePro puts "/bso/external/bidAckList.sdo" when there's a public list
+        if (holderListValue && holderListValue.includes('/bso/external/bidAckList.sdo')) {
+          ids.push(cleanId);
         }
       } else {
-        ids.push(id);
+        ids.push(cleanId);
       }
     }
   }
@@ -150,36 +153,6 @@ function getIdColumn(dataset) {
   return columns[dataset] || 'ID';
 }
 
-/**
- * Parse a CSV line handling quoted values
- */
-function parseCSVLine(line) {
-  const values = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-    
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      values.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  values.push(current.trim());
-  
-  return values;
-}
 
 /**
  * Test a URL to see if it loads successfully
@@ -228,7 +201,7 @@ async function testUrl(page, url, recordType) {
 /**
  * Validate URLs for a dataset
  */
-async function validateDataset(dataset, page, onlyWithHolderList = false) {
+async function validateDataset(dataset, page) {
   const results = {
     dataset,
     tested: 0,
@@ -245,11 +218,62 @@ async function validateDataset(dataset, page, onlyWithHolderList = false) {
     return results;
   }
   
-  // Extract sample IDs
-  const ids = await extractSampleIds(recentRun.csvPath, dataset, SAMPLE_SIZE, onlyWithHolderList);
+  // For bids, we need to read the full CSV to check holder list status
+  let bidsWithHolderLists = new Set();
+  if (dataset === 'bids') {
+    const content = await fs.readFile(recentRun.csvPath, 'utf8');
+    const records = parse(content, {
+      columns: true,
+      bom: true,
+      skip_empty_lines: true,
+      relax_quotes: true,
+      relax_column_count: true,
+      trim: true
+    });
+    
+    // Find bids that have holder lists
+    for (const record of records) {
+      if (record['Bid Holder List'] === '/bso/external/bidAckList.sdo') {
+        bidsWithHolderLists.add(record['Bid Solicitation #']);
+      }
+    }
+    console.log(`  Found ${bidsWithHolderLists.size} bids with public holder lists out of ${records.length} total`);
+  }
+  
+  // Extract sample IDs for basic testing
+  let ids = await extractSampleIds(recentRun.csvPath, dataset, SAMPLE_SIZE);
   if (ids.length === 0) {
     results.errors.push(`No valid IDs found in ${recentRun.csvPath}`);
     return results;
+  }
+  
+  // For bids, ensure we include at least 2 bids with holder lists in our sample
+  if (dataset === 'bids' && bidsWithHolderLists.size > 0) {
+    const idsSet = new Set(ids);
+    let holderListSamples = 0;
+    
+    // Count how many of our samples have holder lists
+    for (const id of ids) {
+      if (bidsWithHolderLists.has(id)) {
+        holderListSamples++;
+      }
+    }
+    
+    // If we don't have at least 2, add some
+    if (holderListSamples < 2) {
+      const needed = 2 - holderListSamples;
+      let added = 0;
+      
+      for (const bidWithList of bidsWithHolderLists) {
+        if (!idsSet.has(bidWithList)) {
+          ids.push(bidWithList);
+          added++;
+          if (added >= needed) break;
+        }
+      }
+      
+      console.log(`  Added ${added} bids with holder lists to ensure coverage`);
+    }
   }
   
   console.log(`  Testing ${ids.length} ${dataset} URLs from ${recentRun.date}...`);
@@ -287,8 +311,8 @@ async function validateDataset(dataset, page, onlyWithHolderList = false) {
       error: result.error
     });
     
-    // For bids, also test holder list URL (some will fail - that's expected)
-    if (dataset === 'bids') {
+    // For bids, test holder list URL ONLY if this bid has one
+    if (dataset === 'bids' && bidsWithHolderLists.has(id)) {
       const holderUrl = buildUrl(id, 'bid_holder_list');
       const holderResult = await testUrl(page, holderUrl, 'bid_holder_list');
       
@@ -298,14 +322,13 @@ async function validateDataset(dataset, page, onlyWithHolderList = false) {
         results.passed++;
         if (holderResult.hasPublicList) {
           process.stdout.write('H'); // Capital H for actual list
-        } else if (holderResult.notAuthorized) {
-          process.stdout.write('h'); // lowercase h for not authorized
         } else {
-          process.stdout.write('?'); // unexpected response
+          process.stdout.write('!'); // Should have had a list but didn't
         }
       } else {
         results.failed++;
-        process.stdout.write('x'); // actual failure
+        process.stdout.write('X'); // Failed when it should have worked
+        results.errors.push(`${id} holder list: Should have worked but failed`);
       }
       
       results.samples.push({
@@ -313,9 +336,7 @@ async function validateDataset(dataset, page, onlyWithHolderList = false) {
         url: holderUrl,
         success: holderResult.success,
         status: holderResult.status,
-        note: holderResult.hasPublicList ? 'Has public holder list' : 
-              holderResult.notAuthorized ? 'No public holder list' : 
-              undefined,
+        note: 'Should have public holder list',
         error: holderResult.error
       });
       
@@ -386,9 +407,6 @@ async function validateUrls() {
       }
     }
     
-    // Note: Cannot validate bids with holder lists from CSV since 
-    // the CSV export doesn't include the "View List" indicator
-    
     // Summary
     console.log('\n' + '='.repeat(40));
     console.log('VALIDATION SUMMARY');
@@ -433,15 +451,16 @@ async function validateUrls() {
       const bidResults = results.bids;
       if (bidResults && bidResults.samples) {
         const holderLists = bidResults.samples.filter(s => s.id.includes('holder list'));
-        const withPublicList = holderLists.filter(s => s.note === 'Has public holder list').length;
-        const withoutPublicList = holderLists.filter(s => s.note === 'No public holder list').length;
-        const unknown = holderLists.length - withPublicList - withoutPublicList;
         
         if (holderLists.length > 0) {
-          console.log(`\n📊 Bid Holder Lists tested: ${holderLists.length}`);
-          if (withPublicList > 0) console.log(`   ✅ ${withPublicList} with public vendor lists`);
-          if (withoutPublicList > 0) console.log(`   🔒 ${withoutPublicList} restricted (no public list)`);
-          if (unknown > 0) console.log(`   ❓ ${unknown} unknown status`);
+          const passed = holderLists.filter(s => s.success).length;
+          const failed = holderLists.filter(s => !s.success).length;
+          
+          console.log(`\n📊 Bid Holder Lists validated: ${holderLists.length}`);
+          console.log(`   ✅ ${passed} passed (URLs worked as expected)`);
+          if (failed > 0) {
+            console.log(`   ❌ ${failed} failed (should have worked)`);
+          }
         }
       }
     }

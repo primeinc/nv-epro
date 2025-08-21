@@ -16,6 +16,30 @@ const DS = {
   purchase_orders: { script: 'scrape-po-cli.js', mode: 'windowed' }
 };
 
+// Track active lock files for cleanup on process exit
+const activeLockFiles = new Set();
+
+// Register process-wide cleanup handlers once
+process.on('exit', () => {
+  for (const lockFile of activeLockFiles) {
+    removeLockFile(lockFile);
+  }
+});
+
+process.on('SIGINT', () => {
+  for (const lockFile of activeLockFiles) {
+    removeLockFile(lockFile);
+  }
+  process.exit(130);
+});
+
+process.on('SIGTERM', () => {
+  for (const lockFile of activeLockFiles) {
+    removeLockFile(lockFile);
+  }
+  process.exit(143);
+});
+
 function ymd(d) { return d.toISOString().slice(0,10); }
 function toMMDDYYYY(d) {
   const m = String(d.getUTCMonth()+1).padStart(2,'0');
@@ -52,6 +76,7 @@ async function hasSuccessfulRunToday(dataset, label) {
         return true;
       }
     } catch (e) {
+      console.error(`Warning: Failed to parse manifest ${manifestPath}:`, e.message);
       // Invalid manifest, skip
     }
   }
@@ -88,12 +113,14 @@ function createLockFile(dataset, label) {
     started: new Date().toISOString()
   }));
   
+  activeLockFiles.add(lockFile);
   return lockFile;
 }
 
 function removeLockFile(lockFile) {
   if (lockFile && fs.existsSync(lockFile)) {
     fs.unlinkSync(lockFile);
+    activeLockFiles.delete(lockFile);
   }
 }
 
@@ -222,10 +249,7 @@ function runTask(t, attempt=0) {
       }
     });
     
-    // Clean up lock on process exit
-    process.on('exit', () => removeLockFile(lockFile));
-    process.on('SIGINT', () => removeLockFile(lockFile));
-    process.on('SIGTERM', () => removeLockFile(lockFile));
+    // Lock cleanup is handled by global process handlers
   });
 }
 

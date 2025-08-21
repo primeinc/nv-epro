@@ -26,8 +26,10 @@ async function getConnection() {
 
 async function executeSQL(sql) {
   const conn = await getConnection();
-  const result = await conn.run(sql);
-  return await result.getRowObjects();
+  const reader = await conn.runAndReadAll(sql);
+  // runAndReadAll returns a reader object with getRows() method
+  const rows = reader.getRows();
+  return rows;
 }
 
 async function ingestDataset(runPath, dataset) {
@@ -53,20 +55,68 @@ async function ingestDataset(runPath, dataset) {
   
   // Let DuckDB auto-detect schema and load the data
   console.log('Step 1: Auto-detecting schema and loading CSV...');
-  await executeSQL(`
-    CREATE OR REPLACE TABLE raw_${dataset} AS
-    SELECT *, 
-      CURRENT_TIMESTAMP AS ingested_at,
-      '${runId}' AS run_id
-    FROM read_csv_auto('${csvPath.replace(/\\/g, '/')}', 
-      header=true, 
-      ignore_errors=false,
-      sample_size=-1
-    )
-  `);
+  
+  // Dataset-specific date parsing
+  if (dataset === 'bids') {
+    // Bids have "Bid Opening Date" in format MM/DD/YYYY HH:MM:SS
+    await executeSQL(`
+      CREATE OR REPLACE TABLE raw_${dataset} AS
+      SELECT 
+        "Bid Solicitation #",
+        "Organization Name",
+        "Contract #",
+        "Buyer",
+        "Description",
+        strptime("Bid Opening Date", '%m/%d/%Y %H:%M:%S')::TIMESTAMP AS "Bid Opening Date",
+        "Bid Holder List",
+        "Awarded Vendor(s)",
+        "Status",
+        "Alternate Id",
+        CURRENT_TIMESTAMP AS ingested_at,
+        '${runId}' AS run_id
+      FROM read_csv_auto('${csvPath.replace(/\\/g, '/')}', 
+        header=true, 
+        ignore_errors=false,
+        sample_size=-1
+      )
+    `);
+  } else if (dataset === 'purchase_orders') {
+    // POs typically have date columns that need parsing
+    await executeSQL(`
+      CREATE OR REPLACE TABLE raw_${dataset} AS
+      SELECT *, 
+        CURRENT_TIMESTAMP AS ingested_at,
+        '${runId}' AS run_id
+      FROM read_csv_auto('${csvPath.replace(/\\/g, '/')}', 
+        header=true, 
+        ignore_errors=false,
+        sample_size=-1,
+        dateformat='%m/%d/%Y',
+        timestampformat='%m/%d/%Y %H:%M:%S'
+      )
+    `);
+  } else {
+    // Default auto-detection for other datasets
+    await executeSQL(`
+      CREATE OR REPLACE TABLE raw_${dataset} AS
+      SELECT *, 
+        CURRENT_TIMESTAMP AS ingested_at,
+        '${runId}' AS run_id
+      FROM read_csv_auto('${csvPath.replace(/\\/g, '/')}', 
+        header=true, 
+        ignore_errors=false,
+        sample_size=-1
+      )
+    `);
+  }
   
   // Show what columns we detected
-  const columns = await executeSQL(`DESCRIBE raw_${dataset}`);
+  const describeResult = await executeSQL(`DESCRIBE raw_${dataset}`);
+  // DESCRIBE returns rows as arrays: [column_name, column_type, null, null, null, null]
+  const columns = describeResult.map(row => ({
+    column_name: row[0],
+    column_type: row[1]
+  }));
   console.log('Detected columns:', columns.map(c => `${c.column_name}: ${c.column_type}`));
   
   // Add content hash for change detection
@@ -169,15 +219,34 @@ async function ingestDataset(runPath, dataset) {
   
   if (dateCol && (dateCol.column_type.includes('DATE') || dateCol.column_type.includes('TIMESTAMP'))) {
     console.log(`Partitioning by ${dateCol.column_name} (${dateCol.column_type})`);
-    await executeSQL(`
-      COPY (
-        SELECT *,
-          strftime("${dateCol.column_name}", '%Y') AS year,
-          strftime("${dateCol.column_name}", '%m') AS month
-        FROM canonical_${dataset}
-      ) TO '${canonicalPath.replace(/\\/g, '/')}'
-      WITH (FORMAT PARQUET, PARTITION_BY (year, month), COMPRESSION ZSTD, ROW_GROUP_SIZE 100000, OVERWRITE_OR_IGNORE true)
-    `);
+    
+    // Check the actual type in canonical table
+    const canonicalCols = await executeSQL(`DESCRIBE canonical_${dataset}`);
+    const canonicalDateCol = canonicalCols.find(row => row[0] === dateCol.column_name);
+    
+    if (canonicalDateCol && canonicalDateCol[1].includes('TIMESTAMP')) {
+      // Column is already a timestamp, use it directly
+      await executeSQL(`
+        COPY (
+          SELECT *,
+            strftime("${dateCol.column_name}", '%Y') AS year,
+            strftime("${dateCol.column_name}", '%m') AS month
+          FROM canonical_${dataset}
+        ) TO '${canonicalPath.replace(/\\/g, '/')}'
+        WITH (FORMAT PARQUET, PARTITION_BY (year, month), COMPRESSION ZSTD, ROW_GROUP_SIZE 100000, OVERWRITE_OR_IGNORE true)
+      `);
+    } else {
+      // Need to parse the string date
+      await executeSQL(`
+        COPY (
+          SELECT *,
+            strftime(strptime("${dateCol.column_name}", '%m/%d/%Y %H:%M:%S'), '%Y') AS year,
+            strftime(strptime("${dateCol.column_name}", '%m/%d/%Y %H:%M:%S'), '%m') AS month
+          FROM canonical_${dataset}
+        ) TO '${canonicalPath.replace(/\\/g, '/')}'
+        WITH (FORMAT PARQUET, PARTITION_BY (year, month), COMPRESSION ZSTD, ROW_GROUP_SIZE 100000, OVERWRITE_OR_IGNORE true)
+      `);
+    }
   } else {
     console.log(`No suitable date column found for partitioning`);
     if (dateCol) {
@@ -209,11 +278,11 @@ async function ingestDataset(runPath, dataset) {
   `);
   
   const stats = {
-    processed_records: rawCount[0].count,
-    canonical_total: canonicalCount[0].count, 
-    new_records: newRecords[0].count,
-    updated_records: updatedRecords[0].count,
-    unchanged_records: unchangedRecords[0].count
+    processed_records: rawCount[0][0],  // First column of first row
+    canonical_total: canonicalCount[0][0], 
+    new_records: newRecords[0][0],
+    updated_records: updatedRecords[0][0],
+    unchanged_records: unchangedRecords[0][0]
   };
   
   console.log(`${dataset} ingestion complete:`, stats);
