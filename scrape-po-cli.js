@@ -3,9 +3,13 @@ const { chromium } = require('playwright');
 const fs = require('fs').promises;
 const path = require('path');
 
-const THROTTLE_MS = 2000;
+// Environment-tunable timeouts with sensible defaults
+const THROTTLE_MS = parseInt(process.env.THROTTLE_MS || '2000');
+const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '30000');
+const DOWNLOAD_TIMEOUT_MS = parseInt(process.env.DOWNLOAD_TIMEOUT_MS || '300000'); // 5 minutes
 const { getRunContext } = require('./lib/run-context');
 const { finalizeRun } = require('./lib/manifest-utils');
+const { captureDiagnostics, setupLogging, parseError } = require('./lib/diagnostics');
 let RUNTIME = null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -197,35 +201,60 @@ function parseArgs(args) {
 }
 
 async function scrapePOs(startDate, endDate, label) {
-  // Directories already created by getRunContext
-  const startTime = new Date();
-  
-  const browser = await chromium.launch({ 
-    headless: true,
-    downloadsPath: RUNTIME.DOWNLOAD_DIR
-  });
-  
-  const context = await browser.newContext({
-    acceptDownloads: true
-  });
-  
-  const page = await context.newPage();
+  // Tracking variables for diagnostics
+  let stage = 'initialization';
+  let lastSelector = null;
+  let browser = null;
+  let context = null;
+  let page = null;
   
   try {
+    browser = await chromium.launch({ 
+      headless: true,
+      downloadsPath: RUNTIME.DOWNLOAD_DIR
+    });
+    
+    const diagDir = path.join(RUNTIME.rawDir, 'diagnostics');
+    await fs.mkdir(diagDir, { recursive: true }).catch(() => {});
+    
+    context = await browser.newContext({
+      acceptDownloads: true,
+      recordHar: { 
+        path: path.join(diagDir, 'network.har'),
+        content: 'embed'  // Embed response bodies
+      }
+    });
+    
+    // Start tracing for diagnostics
+    await context.tracing.start({ 
+      screenshots: true, 
+      snapshots: true,
+      sources: true
+    });
+    
+    page = await context.newPage();
+    
+    // Set up logging
+    setupLogging(page, RUNTIME);
+    
     console.log('\nNevada ePro PO Scraper');
     console.log('======================');
     console.log(`Start Date: ${startDate}`);
     console.log(`End Date:   ${endDate}`);
     
+    stage = 'navigation';
     console.log('\nNavigating to Nevada ePro...');
     await page.goto('https://nevadaepro.com/bso/view/search/external/advancedSearchPurchaseOrder.xhtml', {
       waitUntil: 'networkidle',
-      timeout: 30000
+      timeout: NAV_TIMEOUT_MS
     });
     
+    stage = 'date_input';
     console.log('Setting date range...');
-    const fromDateInput = await page.locator('input[id*="sentDateFrom_input"]');
-    const toDateInput = await page.locator('input[id*="sentDateTo_input"]');
+    lastSelector = 'input[id*="sentDateFrom_input"]';
+    const fromDateInput = await page.locator(lastSelector);
+    lastSelector = 'input[id*="sentDateTo_input"]';
+    const toDateInput = await page.locator(lastSelector);
     
     await fromDateInput.clear();
     await fromDateInput.fill(startDate);
@@ -236,14 +265,19 @@ async function scrapePOs(startDate, endDate, label) {
     await page.click('body');
     await sleep(500);
     
+    stage = 'search';
     console.log('Searching...');
-    await page.locator('button:has-text("Search")').first().click();
+    lastSelector = 'button:has-text("Search")';
+    await page.locator(lastSelector).first().click();
     
-    await page.waitForSelector('[id*="poResultId"]', { timeout: 30000 });
+    stage = 'wait_results';
+    lastSelector = '[id*="poResultId"]';
+    await page.waitForSelector(lastSelector, { timeout: NAV_TIMEOUT_MS });
     await sleep(THROTTLE_MS);
     
+    stage = 'csv_export';
     console.log('Clicking CSV export...');
-    const downloadPromise = page.waitForEvent('download', { timeout: 300000 }); // 5 minute timeout
+    const downloadPromise = page.waitForEvent('download', { timeout: DOWNLOAD_TIMEOUT_MS });
     await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
       const csvImage = images.find(img => img.src && img.src.includes('csv'));
@@ -255,6 +289,7 @@ async function scrapePOs(startDate, endDate, label) {
     
     const download = await downloadPromise;
     
+    stage = 'save_file';
     const outputPath = path.join(RUNTIME.OUTPUT_DIR, `po_${label}.csv`);
     await download.saveAs(outputPath);
     
@@ -271,11 +306,42 @@ async function scrapePOs(startDate, endDate, label) {
     console.log('\n✅ Success!');
     console.log(`Downloaded ${totalRecords} records to po_${label}.csv`);
     
+    // Capture final URL for manifest
+    const finalUrl = await page.url();
+    
+    // Save trace and HAR on success
+    await context.tracing.stop({ 
+      path: path.join(diagDir, 'trace.playwright.zip') 
+    }).catch(() => {});
+    
+    return { success: true, totalRecords, finalUrl };
+    
   } catch (error) {
-    console.error('Error during scraping:', error);
+    console.error('\n❌ Error during scraping:', error.message);
+    
+    // Capture all diagnostics on failure
+    const errorInfo = parseError(error, stage, page, lastSelector);
+    if (page) {
+      try {
+        errorInfo.url = await page.url();
+      } catch {}
+    }
+    
+    await captureDiagnostics(RUNTIME, context, page, error, stage);
+    
+    // Re-throw with enhanced error
+    error.stage = stage;
+    error.lastSelector = lastSelector;
     throw error;
+    
   } finally {
-    await browser.close();
+    // Close context first to flush HAR
+    if (context) {
+      await context.close().catch(() => {});
+    }
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
@@ -327,9 +393,30 @@ Notes:
   console.log(`📂 Output: ${RUNTIME.OUTPUT_DIR}`);
   
   const startTime = new Date();
-  await scrapePOs(startDate, endDate, label);
+  let status = 'success';
+  let errorInfo = null;
+  let result = null;
+  
+  try {
+    result = await scrapePOs(startDate, endDate, label);
+  } catch (err) {
+    status = 'error';
+    errorInfo = {
+      name: err.name || 'Error',
+      message: String(err.message || err),
+      stack: String(err.stack || ''),
+      stage: err.stage || 'unknown',
+      selector: err.lastSelector || null,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Set exit code but don't throw - we want to finalize
+    process.exitCode = 2;
+  }
+  
   const endTime = new Date();
   
+  // Always finalize, even on error
   await finalizeRun(RUNTIME, {
     dataset: 'purchase_orders',
     label,
@@ -337,11 +424,19 @@ Notes:
     endDate,
     startTime,
     endTime,
+    status,
+    error: errorInfo,
+    finalUrl: result?.finalUrl,
     command: `node ${path.basename(__filename)} ${process.argv.slice(2).join(' ')}`
   });
   
   console.log('📋 Manifest: ' + path.relative(process.cwd(), RUNTIME.manifestPath));
   console.log('🔐 Checksums: ' + path.relative(process.cwd(), RUNTIME.checksumsPath));
+  
+  if (status === 'error') {
+    console.log('⚠️  Diagnostics saved in: ' + path.relative(process.cwd(), path.join(RUNTIME.rawDir, 'diagnostics')));
+    console.log('⚠️  Failure marker written: ' + path.relative(process.cwd(), path.join(RUNTIME.rawDir, '_FAILED')));
+  }
 }
 
 if (require.main === module) {

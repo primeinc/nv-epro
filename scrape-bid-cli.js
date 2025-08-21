@@ -3,9 +3,13 @@ const { chromium } = require('playwright');
 const fs = require('fs').promises;
 const path = require('path');
 
-const THROTTLE_MS = 2000;
+// Environment-tunable timeouts with sensible defaults
+const THROTTLE_MS = parseInt(process.env.THROTTLE_MS || '2000');
+const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '30000');
+const DOWNLOAD_TIMEOUT_MS = parseInt(process.env.DOWNLOAD_TIMEOUT_MS || '300000'); // 5 minutes
 const { getRunContext } = require('./lib/run-context');
 const { finalizeRun } = require('./lib/manifest-utils');
+const { captureDiagnostics, setupLogging, parseError } = require('./lib/diagnostics');
 let RUNTIME = null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -37,6 +41,18 @@ function validateDate(dateStr, label) {
   // Parse the date string (MM/DD/YYYY format)
   const [month, day, year] = dateStr.split('/').map(Number);
   const date = new Date(year, month - 1, day);
+  
+  // Basic sanity check - is it a valid date?
+  if (isNaN(date.getTime()) || date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {
+    throw new Error(`Invalid date: ${label}. "${dateStr}" is not a valid date.`);
+  }
+  
+  // Earliest available date is January 31, 2018 (same as POs)
+  const earliestDate = new Date(2018, 0, 31); // January 31, 2018
+  
+  if (date < earliestDate) {
+    throw new Error(`Invalid date: ${label}. Nevada ePro bid data only available from January 31, 2018 onwards.`);
+  }
   
   // Don't allow future dates
   const today = new Date();
@@ -189,20 +205,41 @@ function parseArgs(args) {
 }
 
 async function scrapeBids(startDate, endDate, label) {
-  // Directories already created by getRunContext
-  
-  const browser = await chromium.launch({ 
-    headless: true,
-    downloadsPath: RUNTIME.DOWNLOAD_DIR
-  });
-  
-  const context = await browser.newContext({
-    acceptDownloads: true
-  });
-  
-  const page = await context.newPage();
+  // Tracking variables for diagnostics
+  let stage = 'initialization';
+  let lastSelector = null;
+  let browser = null;
+  let context = null;
+  let page = null;
   
   try {
+    browser = await chromium.launch({ 
+      headless: true,
+      downloadsPath: RUNTIME.DOWNLOAD_DIR
+    });
+    
+    const diagDir = path.join(RUNTIME.rawDir, 'diagnostics');
+    await fs.mkdir(diagDir, { recursive: true }).catch(() => {});
+    
+    context = await browser.newContext({
+      acceptDownloads: true,
+      recordHar: { 
+        path: path.join(diagDir, 'network.har'),
+        content: 'embed'  // Embed response bodies
+      }
+    });
+    
+    // Start tracing for diagnostics
+    await context.tracing.start({ 
+      screenshots: true, 
+      snapshots: true,
+      sources: true
+    });
+    
+    page = await context.newPage();
+    
+    // Set up logging
+    setupLogging(page, RUNTIME);
     console.log('\nNevada ePro Bid Scraper');
     console.log('========================');
     if (startDate && endDate) {
@@ -212,17 +249,21 @@ async function scrapeBids(startDate, endDate, label) {
       console.log('Date Range: ALL BIDS (no date filter)');
     }
     
+    stage = 'navigation';
     console.log('\nNavigating to Nevada ePro...');
     await page.goto('https://nevadaepro.com/bso/view/search/external/advancedSearchBid.xhtml', {
       waitUntil: 'networkidle',
-      timeout: 30000
+      timeout: NAV_TIMEOUT_MS
     });
     
     // Only fill dates if provided
     if (startDate && endDate) {
+      stage = 'date_input';
       console.log('Setting date range...');
-      const fromDateInput = await page.locator('input[id="bidSearchForm:openingDateFrom_input"]');
-      const toDateInput = await page.locator('input[id="bidSearchForm:openingDateTo_input"]');
+      lastSelector = 'input[id="bidSearchForm:openingDateFrom_input"]';
+      const fromDateInput = await page.locator(lastSelector);
+      lastSelector = 'input[id="bidSearchForm:openingDateTo_input"]';
+      const toDateInput = await page.locator(lastSelector);
       
       await fromDateInput.clear();
       await fromDateInput.fill(startDate);
@@ -234,12 +275,17 @@ async function scrapeBids(startDate, endDate, label) {
       await sleep(500);
     }
     
+    stage = 'search';
     console.log('Searching...');
-    await page.locator('button:has-text("Search")').first().click();
+    lastSelector = 'button:has-text("Search")';
+    await page.locator(lastSelector).first().click();
     
+    stage = 'wait_results';
+    lastSelector = 'img[src*="csv"]';
     // Wait for the CSV export image to appear - that's all we need
-    await page.waitForSelector('img[src*="csv"]', { timeout: 30000 });
+    await page.waitForSelector(lastSelector, { timeout: NAV_TIMEOUT_MS });
     
+    stage = 'csv_export';
     console.log('Clicking CSV export...');
     const csvImage = await page.$('img[src*="csv"]');
 
@@ -249,7 +295,7 @@ async function scrapeBids(startDate, endDate, label) {
     }
 
     // Set up download promise BEFORE clicking (5 minute timeout for large exports)
-    const downloadPromise = page.waitForEvent('download', { timeout: 300000 });
+    const downloadPromise = page.waitForEvent('download', { timeout: DOWNLOAD_TIMEOUT_MS });
     
     // Click the CSV image
     await csvImage.click();
@@ -257,6 +303,7 @@ async function scrapeBids(startDate, endDate, label) {
     console.log('Waiting for download...');
     const download = await downloadPromise;
     
+    stage = 'save_file';
     const outputPath = path.join(RUNTIME.OUTPUT_DIR, `bid_${label}.csv`);
     await download.saveAs(outputPath);
     
@@ -273,11 +320,42 @@ async function scrapeBids(startDate, endDate, label) {
     console.log('\n✅ Success!');
     console.log(`Downloaded ${totalRecords} records to bid_${label}.csv`);
     
+    // Capture final URL for manifest
+    const finalUrl = await page.url();
+    
+    // Save trace and HAR on success
+    await context.tracing.stop({ 
+      path: path.join(diagDir, 'trace.playwright.zip') 
+    }).catch(() => {});
+    
+    return { success: true, totalRecords, finalUrl };
+    
   } catch (error) {
-    console.error('Error during scraping:', error);
+    console.error('\n❌ Error during scraping:', error.message);
+    
+    // Capture all diagnostics on failure
+    const errorInfo = parseError(error, stage, page, lastSelector);
+    if (page) {
+      try {
+        errorInfo.url = await page.url();
+      } catch {}
+    }
+    
+    await captureDiagnostics(RUNTIME, context, page, error, stage);
+    
+    // Re-throw with enhanced error
+    error.stage = stage;
+    error.lastSelector = lastSelector;
     throw error;
+    
   } finally {
-    await browser.close();
+    // Close context first to flush HAR
+    if (context) {
+      await context.close().catch(() => {});
+    }
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
@@ -330,9 +408,30 @@ Notes:
   console.log(`📂 Output: ${RUNTIME.OUTPUT_DIR}`);
   
   const startTime = new Date();
-  await scrapeBids(startDate, endDate, label);
+  let status = 'success';
+  let errorInfo = null;
+  let result = null;
+  
+  try {
+    result = await scrapeBids(startDate, endDate, label);
+  } catch (err) {
+    status = 'error';
+    errorInfo = {
+      name: err.name || 'Error',
+      message: String(err.message || err),
+      stack: String(err.stack || ''),
+      stage: err.stage || 'unknown',
+      selector: err.lastSelector || null,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Set exit code but don't throw - we want to finalize
+    process.exitCode = 2;
+  }
+  
   const endTime = new Date();
   
+  // Always finalize, even on error
   await finalizeRun(RUNTIME, {
     dataset: 'bids',
     label,
@@ -340,11 +439,19 @@ Notes:
     endDate,
     startTime,
     endTime,
+    status,
+    error: errorInfo,
+    finalUrl: result?.finalUrl,
     command: `node ${path.basename(__filename)} ${process.argv.slice(2).join(' ')}`
   });
   
   console.log('📋 Manifest: ' + path.relative(process.cwd(), RUNTIME.manifestPath));
   console.log('🔐 Checksums: ' + path.relative(process.cwd(), RUNTIME.checksumsPath));
+  
+  if (status === 'error') {
+    console.log('⚠️  Diagnostics saved in: ' + path.relative(process.cwd(), path.join(RUNTIME.rawDir, 'diagnostics')));
+    console.log('⚠️  Failure marker written: ' + path.relative(process.cwd(), path.join(RUNTIME.rawDir, '_FAILED')));
+  }
 }
 
 if (require.main === module) {
