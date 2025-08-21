@@ -3,12 +3,10 @@ const { chromium } = require('playwright');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Configuration
-const CONFIG = {
-  OUTPUT_DIR: path.join(__dirname, 'output'),
-  DOWNLOAD_DIR: path.join(__dirname, 'downloads'),
-  THROTTLE_MS: 2000
-};
+const THROTTLE_MS = 2000;
+const { getRunContext } = require('./lib/run-context');
+const { finalizeRun } = require('./lib/manifest-utils');
+let RUNTIME = null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -49,12 +47,11 @@ function parseArgs(args) {
 }
 
 async function scrapeVendors(filter, label) {
-  await fs.mkdir(CONFIG.DOWNLOAD_DIR, { recursive: true });
-  await fs.mkdir(CONFIG.OUTPUT_DIR, { recursive: true });
+  // Directories already created by getRunContext
   
   const browser = await chromium.launch({ 
     headless: true,
-    downloadsPath: CONFIG.DOWNLOAD_DIR
+    downloadsPath: RUNTIME.DOWNLOAD_DIR
   });
   
   const context = await browser.newContext({
@@ -134,7 +131,7 @@ async function scrapeVendors(filter, label) {
     console.log('Waiting for download...');
     const download = await downloadPromise;
     
-    const outputPath = path.join(CONFIG.OUTPUT_DIR, `vendor_${label}.csv`);
+    const outputPath = path.join(RUNTIME.OUTPUT_DIR, `vendor_${label}.csv`);
     await download.saveAs(outputPath);
     
     let totalRecords = 0;
@@ -190,7 +187,28 @@ Notes:
   }
   
   const { filter, label } = parseArgs(args);
+  
+  // Initialize run context
+  RUNTIME = getRunContext('vendors', label);
+  
+  console.log(`\n📁 Run ID: ${RUNTIME.runId}`);
+  console.log(`📂 Output: ${RUNTIME.OUTPUT_DIR}`);
+  
+  const startTime = new Date();
   await scrapeVendors(filter, label);
+  const endTime = new Date();
+  
+  await finalizeRun(RUNTIME, {
+    dataset: 'vendors',
+    label,
+    filter,
+    startTime,
+    endTime,
+    command: `node ${path.basename(__filename)} ${process.argv.slice(2).join(' ')}`
+  });
+  
+  console.log('📋 Manifest: ' + path.relative(process.cwd(), RUNTIME.manifestPath));
+  console.log('🔐 Checksums: ' + path.relative(process.cwd(), RUNTIME.checksumsPath));
 }
 
 if (require.main === module) {
