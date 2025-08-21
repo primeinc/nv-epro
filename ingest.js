@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+// WIP - WORK IN PROGRESS - NOT INTEGRATED YET
 // ingest.js - DuckDB-based ingestion pipeline for Nevada eProcurement data
 // Uses DuckDB's auto-schema detection for robust CSV ingestion
 

@@ -32,3 +32,4 @@ last_run.json
 test-results/
 playwright-report/
 playwright/.cache/
+examples

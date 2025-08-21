@@ -8,7 +8,12 @@
       "mcp__playwright__browser_click",
       "Bash(pnpm run po:*)",
       "mcp__playwright__browser_evaluate",
-      "Bash(pnpm run:*)"
+      "Bash(pnpm run:*)",
+      "mcp__playwright__browser_select_option",
+      "Bash(node:*)",
+      "Bash(grep:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": [],
     "ask": []
