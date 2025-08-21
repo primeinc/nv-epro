@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_click",
+      "Bash(pnpm run po:*)",
+      "mcp__playwright__browser_evaluate",
+      "Bash(pnpm run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
