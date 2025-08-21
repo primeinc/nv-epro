@@ -8,13 +8,15 @@
     "po": "node scrape-po-cli.js",
     "bid": "node scrape-bid-cli.js",
     "contract": "node scrape-contract-cli.js",
-    "vendor": "node scrape-vendor-cli.js"
+    "vendor": "node scrape-vendor-cli.js",
+    "ingest": "node ingest.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
-    "playwright": "^1.55.0"
+    "@duckdb/node-api": "1.3.2-alpha.26",
+    "playwright": "1.55.0"
   }
 }
