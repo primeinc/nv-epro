@@ -114,8 +114,12 @@ function parseArgs(args) {
       const lastDay = getDaysInMonth(month, year);
       const monthStr = String(month).padStart(2, '0');
       
-      // Validate start date
-      validateDate(`${monthStr}/01/${year}`, `${MONTH_NAMES[month]} ${year}`);
+      // Special case: Allow January 2018 even though data starts Jan 31
+      // The website accepts jan 2018 and returns the one record from Jan 31
+      if (!(month === 1 && year === 2018)) {
+        // Validate start date for all other months
+        validateDate(`${monthStr}/01/${year}`, `${MONTH_NAMES[month]} ${year}`);
+      }
       
       return {
         startDate: `${monthStr}/01/${year}`,
