@@ -1,0 +1,175 @@
+{
+  "bronze": {
+    "base_path": "data/bronze",
+    "partition_pattern": "{dataset}/year={year}/month={month}/day={day}/",
+    "file_pattern": "{runId}_{checksum}.parquet",
+    "metadata_columns": {
+      "source_system": "'nevada-epro'",
+      "source_file": "_filename",
+      "source_row": "row_number() OVER (ORDER BY (SELECT NULL))",
+      "ingested_at": "CURRENT_TIMESTAMP",
+      "row_hash": "md5(CAST(ROW(*) AS VARCHAR))"
+    }
+  },
+  
+  "silver": {
+    "base_path": "data/silver",
+    "partition_pattern": "{dataset}/transform_version={version}/",
+    
+    "transforms": {
+      "bids": {
+        "version": "v2.0.0",
+        "primary_key": "bid_id",
+        "columns": {
+          "bid_id": "\"Bid Solicitation #\"",
+          "organization": "\"Organization Name\"",
+          "contract_id_raw": "\"Contract #\"",
+          "contract_id": "NULLIF(\"Contract #\", '')",
+          "buyer": "\"Buyer\"",
+          "description": "\"Description\"",
+          "bid_opening_date_raw": "\"Bid Opening Date\"",
+          "bid_opening_date": "strptime(\"Bid Opening Date\", '%m/%d/%Y %H:%M:%S')::TIMESTAMP",
+          "bid_holder_list_raw": "\"Bid Holder List\"",
+          "has_holder_list": "(\"Bid Holder List\" = '/bso/external/bidAckList.sdo')::BOOLEAN",
+          "bid_holder_list_url": "CASE WHEN (\"Bid Holder List\" = '/bso/external/bidAckList.sdo') THEN 'https://nevadaepro.com/bso/external/bidAckList.sdo?bidId=' || \"Bid Solicitation #\" ELSE NULL END",
+          "awarded_vendors_raw": "\"Awarded Vendor(s)\"",
+          "awarded_vendors": "NULLIF(\"Awarded Vendor(s)\", '')",
+          "status": "\"Status\"",
+          "alternate_id_raw": "\"Alternate Id\"",
+          "alternate_id": "NULLIF(\"Alternate Id\", '')"
+        }
+      },
+      
+      "purchase_orders": {
+        "version": "v2.0.0",
+        "primary_key": "po_id",
+        "columns": {
+          "po_id": "\"PO #\"",
+          "revision_number_raw": "\"Revision #\"",
+          "revision_number": "TRY_CAST(\"Revision #\" AS INTEGER)",
+          "date_sent_raw": "\"Date Sent\"",
+          "date_sent": "strptime(\"Date Sent\", '%m/%d/%Y')::DATE",
+          "days_to_delivery_raw": "\"Days to Delivery\"",
+          "days_to_delivery": "TRY_CAST(\"Days to Delivery\" AS INTEGER)",
+          "status": "\"Status\"",
+          "total_raw": "\"Total\"",
+          "total_amount": "TRY_CAST(REPLACE(REPLACE(\"Total\", '$', ''), ',', '') AS DECIMAL(18,2))",
+          "bid_id_raw": "\"Bid #\"",
+          "bid_id": "NULLIF(\"Bid #\", '')",
+          "contract_id_raw": "\"Contract #\"",
+          "contract_id": "NULLIF(\"Contract #\", '')",
+          "buyer_name": "\"Buyer Name\"",
+          "supplier": "\"Supplier\"",
+          "description": "\"Description\""
+        }
+      },
+      
+      "contracts": {
+        "version": "v2.0.0",
+        "primary_key": "contract_id",
+        "columns": {
+          "contract_id": "\"Contract #\"",
+          "description": "\"Description\"",
+          "department": "\"Department\"",
+          "buyer": "\"Buyer\"",
+          "supplier": "\"Supplier\"",
+          "start_date_raw": "\"Start Date\"",
+          "start_date": "strptime(\"Start Date\", '%m/%d/%Y')::DATE",
+          "end_date_raw": "\"End Date\"",
+          "end_date": "strptime(\"End Date\", '%m/%d/%Y')::DATE",
+          "status": "\"Status\"",
+          "contract_amount_raw": "\"Contract Amount\"",
+          "contract_amount": "TRY_CAST(REPLACE(REPLACE(\"Contract Amount\", '$', ''), ',', '') AS DECIMAL(18,2))",
+          "bid_id_raw": "\"Bid #\"",
+          "bid_id": "NULLIF(\"Bid #\", '')"
+        }
+      },
+      
+      "vendors": {
+        "version": "v2.0.0",
+        "primary_key": "vendor_id",
+        "columns": {
+          "vendor_id": "\"Vendor ID\"",
+          "vendor_name": "\"Vendor Name\"",
+          "status": "\"Status\"",
+          "city": "\"City\"",
+          "state": "\"State\"",
+          "zip": "\"Zip\"",
+          "country": "\"Country\"",
+          "business_type": "\"Business Type\"",
+          "commodity_codes": "\"Commodity Codes\""
+        }
+      }
+    }
+  },
+  
+  "gold": {
+    "base_path": "data/gold",
+    "database": "data/gold/analytics.duckdb",
+    
+    "aggregations": {
+      "bid_summary": {
+        "source": "silver_bids",
+        "sql": "SELECT bid_id, organization, bid_opening_date, has_holder_list, status, COUNT(*) OVER (PARTITION BY organization) as org_bid_count, DATEDIFF('day', bid_opening_date, CURRENT_DATE) as days_since_opening FROM {source}"
+      },
+      "monthly_stats": {
+        "source": "silver_bids",
+        "sql": "SELECT DATE_TRUNC('month', bid_opening_date) as month, COUNT(*) as total_bids, SUM(has_holder_list::INT) as bids_with_holders, COUNT(DISTINCT organization) as unique_orgs FROM {source} GROUP BY 1"
+      }
+    }
+  },
+  
+  "validation": {
+    "bronze": {
+      "min_date": "2018-01-31",
+      "max_future_days": 365,
+      "required_rows": 1,
+      "max_file_size_mb": 1000,
+      "duplicate_threshold": 0.001
+    },
+    
+    "silver": {
+      "critical_columns": {
+        "bids": ["bid_id", "bid_opening_date"],
+        "purchase_orders": ["po_id", "date_sent"],
+        "contracts": ["contract_id"],
+        "vendors": ["vendor_id", "vendor_name"]
+      },
+      "max_null_percentage": 0.05,
+      "date_columns": {
+        "bids": ["bid_opening_date"],
+        "purchase_orders": ["date_sent"],
+        "contracts": ["start_date", "end_date"]
+      }
+    },
+    
+    "gold": {
+      "reconciliation_tolerance": 0.0001,
+      "required_aggregations": ["bid_summary", "monthly_stats"]
+    }
+  },
+  
+  "monitoring": {
+    "alerts": {
+      "row_count_drop": {
+        "threshold": 0.1,
+        "description": "Alert if row count drops by more than 10%"
+      },
+      "null_spike": {
+        "threshold": 0.02,
+        "description": "Alert if null rate increases by more than 2%"
+      },
+      "duplicate_spike": {
+        "threshold": 0.01,
+        "description": "Alert if duplicate rate exceeds 1%"
+      }
+    },
+    
+    "metrics": {
+      "ingestion_time": "Time to complete Bronze ingestion",
+      "transformation_time": "Time to complete Silver transformation",
+      "total_rows": "Total rows processed",
+      "error_rate": "Percentage of failed validations"
+    }
+  }
+}

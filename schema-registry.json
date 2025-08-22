@@ -1,0 +1,135 @@
+{
+  "version": "0.1.0",
+  "schemas": {
+    "bids": {
+      "v0.1.0": {
+        "effective_from": "2018-01-31",
+        "effective_to": null,
+        "columns": {
+          "Bid Solicitation #": "VARCHAR",
+          "Organization Name": "VARCHAR",
+          "Contract #": "VARCHAR",
+          "Buyer": "VARCHAR",
+          "Description": "VARCHAR",
+          "Bid Opening Date": "VARCHAR",
+          "Bid Holder List": "VARCHAR",
+          "Awarded Vendor(s)": "VARCHAR",
+          "Status": "VARCHAR",
+          "Alternate Id": "VARCHAR"
+        },
+        "csv_options": {
+          "header": true,
+          "delimiter": ",",
+          "dateformat": "%m/%d/%Y",
+          "timestampformat": "%m/%d/%Y %H:%M:%S"
+        }
+      }
+    },
+    
+    "purchase_orders": {
+      "v0.1.0": {
+        "effective_from": "2018-01-31",
+        "effective_to": null,
+        "columns": {
+          "PO #": "VARCHAR",
+          "Description": "VARCHAR",
+          "Vendor": "VARCHAR",
+          "Organization": "VARCHAR",
+          "Department": "VARCHAR",
+          "Buyer": "VARCHAR",
+          "Status": "VARCHAR",
+          "Sent Date": "VARCHAR",
+          "Total": "VARCHAR"
+        },
+        "csv_options": {
+          "header": true,
+          "delimiter": ",",
+          "dateformat": "%m/%d/%Y"
+        }
+      }
+    },
+    
+    "contracts": {
+      "v0.1.0": {
+        "effective_from": "2018-01-31",
+        "effective_to": null,
+        "columns": {
+          "Contract #": "VARCHAR",
+          "Description": "VARCHAR",
+          "Department": "VARCHAR",
+          "Buyer": "VARCHAR",
+          "Supplier": "VARCHAR",
+          "Start Date": "VARCHAR",
+          "End Date": "VARCHAR",
+          "Status": "VARCHAR",
+          "Contract Amount": "VARCHAR",
+          "Bid #": "VARCHAR"
+        },
+        "csv_options": {
+          "header": true,
+          "delimiter": ",",
+          "dateformat": "%m/%d/%Y"
+        }
+      }
+    },
+    
+    "vendors": {
+      "v0.1.0": {
+        "effective_from": "2018-01-31",
+        "effective_to": null,
+        "columns": {
+          "Vendor ID": "VARCHAR",
+          "Vendor Name": "VARCHAR",
+          "Address": "VARCHAR",
+          "City": "VARCHAR",
+          "State": "VARCHAR",
+          "Postal Code": "VARCHAR",
+          "Contact Name": "VARCHAR",
+          "Phone": "VARCHAR"
+        },
+        "csv_options": {
+          "header": true,
+          "delimiter": ","
+        }
+      }
+    }
+  },
+  
+  "transforms": {
+    "bids": {
+      "v0.1.0": {
+        "schema_version": "v0.1.0",
+        "sql_file": "transforms/silver/bids_v0.1.0.sql",
+        "primary_key": "bid_id",
+        "partition_column": "bid_opening_date"
+      }
+    },
+    
+    "purchase_orders": {
+      "v0.1.0": {
+        "schema_version": "v0.1.0",
+        "sql_file": "transforms/silver/purchase_orders_v0.1.0.sql",
+        "primary_key": "po_id",
+        "partition_column": "date_sent"
+      }
+    },
+    
+    "contracts": {
+      "v0.1.0": {
+        "schema_version": "v0.1.0",
+        "sql_file": "transforms/silver/contracts_v0.1.0.sql",
+        "primary_key": "contract_id",
+        "partition_column": "start_date"
+      }
+    },
+    
+    "vendors": {
+      "v0.1.0": {
+        "schema_version": "v0.1.0",
+        "sql_file": "transforms/silver/vendors_v0.1.0.sql",
+        "primary_key": "vendor_id",
+        "partition_column": null
+      }
+    }
+  }
+}
