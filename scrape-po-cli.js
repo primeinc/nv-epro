@@ -6,7 +6,31 @@ const path = require('path');
 // Environment-tunable timeouts with sensible defaults
 const THROTTLE_MS = parseInt(process.env.THROTTLE_MS || '2000');
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '30000');
-const DOWNLOAD_TIMEOUT_MS = parseInt(process.env.DOWNLOAD_TIMEOUT_MS || '300000'); // 5 minutes
+
+// Dynamic download timeout based on window size
+// Can be overridden via environment variable
+function getDownloadTimeout(startDate, endDate) {
+  if (process.env.DOWNLOAD_TIMEOUT_MS) {
+    return parseInt(process.env.DOWNLOAD_TIMEOUT_MS);
+  }
+  
+  // Parse dates to determine window size
+  const [startMonth, startDay, startYear] = startDate.split('/').map(Number);
+  const [endMonth, endDay, endYear] = endDate.split('/').map(Number);
+  
+  // Single day: 30 seconds
+  if (startYear === endYear && startMonth === endMonth && startDay === endDay) {
+    return 30000; // 30 seconds
+  }
+  
+  // Single month: 30 seconds (monthly windows are our standard)
+  if (startYear === endYear && startMonth === endMonth) {
+    return 30000; // 30 seconds
+  }
+  
+  // Full year or multi-month: 1 minute
+  return 60000; // 1 minute for larger windows
+}
 const { getRunContext } = require('./lib/run-context');
 const { finalizeRun } = require('./lib/manifest-utils');
 const { captureDiagnostics, setupLogging, parseError } = require('./lib/diagnostics');
@@ -20,7 +44,7 @@ const MONTHS = {
   'feb': 2, 'february': 2, '2': 2,
   'mar': 3, 'march': 3, '3': 3,
   'apr': 4, 'april': 4, '4': 4,
-  'may': 5, '5': 5,
+  'may': 5, 'may': 5,
   'jun': 6, 'june': 6, '6': 6,
   'jul': 7, 'july': 7, '7': 7,
   'aug': 8, 'august': 8, '8': 8,
@@ -280,8 +304,9 @@ async function scrapePOs(startDate, endDate, label) {
     await sleep(THROTTLE_MS);
     
     stage = 'csv_export';
-    console.log('Clicking CSV export...');
-    const downloadPromise = page.waitForEvent('download', { timeout: DOWNLOAD_TIMEOUT_MS });
+    const downloadTimeout = getDownloadTimeout(startDate, endDate);
+    console.log(`Clicking CSV export (timeout: ${downloadTimeout/1000}s)...`);
+    const downloadPromise = page.waitForEvent('download', { timeout: downloadTimeout });
     await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
       const csvImage = images.find(img => img.src && img.src.includes('csv'));
