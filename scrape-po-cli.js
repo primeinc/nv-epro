@@ -23,13 +23,13 @@ function getDownloadTimeout(startDate, endDate) {
     return 30000; // 30 seconds
   }
   
-  // Single month: 30 seconds (monthly windows are our standard)
+  // Single month: 60 seconds (monthly windows are our standard)
   if (startYear === endYear && startMonth === endMonth) {
-    return 30000; // 30 seconds
+    return 60000; // 60 seconds
   }
   
-  // Full year or multi-month: 1 minute
-  return 60000; // 1 minute for larger windows
+  // Full year or multi-month: 2 minutes
+  return 120000; // 2 minutes for larger windows
 }
 const { getRunContext } = require('./lib/run-context');
 const { finalizeRun } = require('./lib/manifest-utils');
