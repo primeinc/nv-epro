@@ -27,6 +27,13 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Checkout existing data
+        run: |
+          git fetch origin data:data 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/data; then
+            git checkout data -- data/ 2>/dev/null || true
+            git checkout dev
+          fi
       - name: Run orchestrator
         env:
           DATA_ROOT: ${{ github.workspace }}/data
