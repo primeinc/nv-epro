@@ -140,9 +140,6 @@ async function planPOWindows(opts) {
   // Otherwise just do current month updates
   if (!opts.backfill) {
     if (covered.size === 0) {
-      // TEMPORARILY DISABLED FOR TESTING - only do current month
-      // TODO: Re-enable full backfill after testing
-      /*
       // No PO data exists - do full backfill from BACKFILL_START to today
       const start = new Date(BACKFILL_START + 'T00:00:00Z');
       let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
@@ -158,18 +155,6 @@ async function planPOWindows(opts) {
         });
         cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth()+1, 1));
       }
-      */
-      
-      // Just do current month for testing
-      const thisMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
-      const lastOfMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth()+1, 0));
-      tasks.push({
-        kind: 'window',
-        dataset: 'purchase_orders',
-        start: toMMDDYYYY(thisMonth),
-        end: toMMDDYYYY(lastOfMonth),
-        label: ymd(thisMonth).slice(0,7)
-      });
     } else {
       // PO data exists - just ensure current month is covered
       const thisMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
