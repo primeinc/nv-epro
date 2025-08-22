@@ -1,0 +1,84 @@
+name: Bronze Pipeline
+
+on:
+  workflow_run:
+    workflows: ["Orchestrator Auto"]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bronze:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          
+      - run: pnpm install --frozen-lockfile
+      
+      - name: Checkout existing data
+        run: |
+          git fetch origin data:data 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/data; then
+            git checkout data -- data/ 2>/dev/null || true
+            git checkout dev
+          fi
+      
+      - name: Run Bronze ingestion
+        env:
+          DATA_ROOT: ${{ github.workspace }}/data
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          echo "🚀 Starting Bronze layer ingestion..."
+          pnpm run bronze:ingest
+      
+      - name: Validate Bronze data
+        env:
+          DATA_ROOT: ${{ github.workspace }}/data
+        run: |
+          echo "✅ Validating Bronze layer data quality..."
+          pnpm run bronze:validate
+      
+      - name: Configure git
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Commit Bronze data
+        if: success()
+        run: |
+          # Switch to data branch
+          git fetch origin data:data 2>/dev/null || git checkout -b data
+          git checkout data
+          
+          # Add Bronze data
+          git add -f data/bronze/
+          
+          if git diff --staged --quiet; then
+            echo "No Bronze data changes to commit"
+          else
+            git commit -m "🏗️ Bronze layer ingestion $(date -u '+%Y-%m-%d %H:%M UTC')
+            
+            Source: Orchestrator run ${{ github.event.workflow_run.id || 'manual' }}
+            
+            🤖 Generated with GitHub Actions
+            Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            
+            # Push to data branch
+            git push -u origin data
+          fi
