@@ -51,7 +51,17 @@ jobs:
           DATA_ROOT: ${{ github.workspace }}/data
         run: |
           echo "✅ Validating Bronze layer data quality..."
-          pnpm run bronze:validate
+          pnpm run bronze:validate || exit_code=$?
+          
+          # Exit codes: 0=pass, 1=warnings, 2=failures, 3=io error
+          if [ "${exit_code:-0}" -gt 1 ]; then
+            echo "❌ Bronze validation failed with critical errors (exit code: $exit_code)"
+            exit $exit_code
+          elif [ "${exit_code:-0}" -eq 1 ]; then
+            echo "⚠️ Bronze validation passed with warnings"
+          else
+            echo "✅ Bronze validation passed"
+          fi
       
       - name: Configure git
         if: success()

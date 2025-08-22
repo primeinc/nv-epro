@@ -241,15 +241,24 @@ async function validateBronze(options) {
     const failedExpectations = expectations.filter(e => !e.success);
     const criticalFailures = failedExpectations.filter(e => {
       const type = e.expectation_config.expectation_type;
-      return type.includes('row_count') || 
-             type.includes('unique') ||
-             type.includes('content_hash');
+      // For Bronze layer, only row_count is critical
+      // Duplicates are warnings only - raw data may have legitimate duplicates
+      return type.includes('row_count');
     });
     
     // Intermediate results only in pretty mode
     if (format === 'pretty' && failedExpectations.length > 0) {
       const passCount = expectations.length - failedExpectations.length;
-      console.log(`${kleur.yellow(`Found ${failedExpectations.length} issues`)} (${passCount}/${expectations.length} passed)`);
+      const warnings = failedExpectations.filter(e => {
+        const type = e.expectation_config.expectation_type;
+        return type.includes('unique') || type.includes('hash');
+      });
+      
+      if (warnings.length === failedExpectations.length) {
+        console.log(`${kleur.yellow(`Found ${warnings.length} warning(s)`)} (${passCount}/${expectations.length} passed)`);
+      } else {
+        console.log(`${kleur.yellow(`Found ${failedExpectations.length} issues`)} (${passCount}/${expectations.length} passed)`);
+      }
     }
     
     let status = 'healthy';
@@ -286,6 +295,82 @@ async function validateBronze(options) {
     const geResultPath = path.join('logs', 'validation', `${dataset}_${runId}.json`);
     await fs.mkdir(path.dirname(geResultPath), { recursive: true });
     await fs.writeFile(geResultPath, JSON.stringify(validationResult, null, 2));
+    
+    // Update Bronze manifest with validation results
+    const manifestPath = path.join(path.dirname(bronzePath), 'manifest.json');
+    if (format === 'pretty') {
+      console.log(kleur.dim(`Updating manifest: ${manifestPath}`));
+    }
+    try {
+      // Read existing manifest
+      const manifestContent = await fs.readFile(manifestPath, 'utf-8');
+      const manifest = JSON.parse(manifestContent);
+      
+      // Helper to convert BigInt to Number and handle Date objects in nested structures
+      const serializeMetrics = (obj) => {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj === 'bigint') return Number(obj);
+        if (obj instanceof Date) return obj.toISOString();
+        // Handle DuckDB date/timestamp objects which may have micros property
+        if (typeof obj === 'object' && 'micros' in obj && Object.keys(obj).length === 1) {
+          return new Date(Number(obj.micros) / 1000).toISOString();
+        }
+        if (typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(serializeMetrics);
+        
+        const result = {};
+        for (const [key, value] of Object.entries(obj)) {
+          result[key] = serializeMetrics(value);
+        }
+        return result;
+      };
+      
+      // Add validation results to manifest
+      manifest.validation = {
+        ...manifest.validation,  // Keep existing basic validation
+        status,
+        timestamp: eventTime,
+        run_id: runId,
+        passed: criticalFailures.length === 0,
+        has_warnings: failedExpectations.length > criticalFailures.length,
+        statistics: {
+          evaluated_expectations: validationResult.statistics.evaluated_expectations,
+          successful_expectations: validationResult.statistics.successful_expectations,
+          unsuccessful_expectations: validationResult.statistics.unsuccessful_expectations
+        },
+        failures: criticalFailures.map(e => ({
+          type: e.expectation_config.expectation_type,
+          kwargs: e.expectation_config.kwargs,
+          observed_value: serializeMetrics(e.result.observed_value),
+          unexpected_count: serializeMetrics(e.result.unexpected_count)
+        })),
+        warnings: failedExpectations.filter(e => !criticalFailures.includes(e)).map(e => ({
+          type: e.expectation_config.expectation_type,
+          kwargs: e.expectation_config.kwargs,
+          observed_value: serializeMetrics(e.result.observed_value),
+          unexpected_count: serializeMetrics(e.result.unexpected_count),
+          unexpected_percent: serializeMetrics(e.result.unexpected_percent)
+        })),
+        metrics: serializeMetrics(metrics)
+      };
+      
+      // Write updated manifest back
+      await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+      
+      if (format === 'pretty') {
+        console.log(kleur.dim(`Manifest updated: ${manifestPath}`));
+      }
+    } catch (error) {
+      // Log but don't fail if manifest update fails
+      if (format === 'pretty') {
+        console.log(kleur.red(`Failed to update manifest: ${error.message}`));
+      }
+      await writeOTelLog('WARN', 'bronze.validate.manifest_update_failed', {
+        dataset,
+        runId,
+        error: error.message
+      });
+    }
     
     // Write OTel log for completion
     await writeOTelLog('INFO', 'bronze.validate.complete', {
@@ -346,30 +431,51 @@ async function validateBronze(options) {
       console.log(`Checks: ${passColor().bold(passCount)}${kleur.gray('/')}${kleur.bold(expectations.length)} passed`);
       
       if (failedExpectations.length > 0) {
-        console.log(`\n${kleur.red().bold('FAILURES:')}`);
-        failedExpectations.forEach(e => {
-          const config = e.expectation_config;
-          const result = e.result;
-          
-          if (config.expectation_type === 'expect_column_values_to_not_be_null') {
-            const column = config.kwargs.column;
-            const actualNullPercent = result.unexpected_percent || 0;
-            const threshold = (1 - config.kwargs.mostly) * 100;
-            const percentColor = actualNullPercent > threshold * 1.5 ? kleur.red : kleur.yellow;
-            console.log(`  ${kleur.cyan(column)}: ${percentColor().bold(actualNullPercent.toFixed(1) + '%')} null (max: ${kleur.gray(threshold.toFixed(1) + '%')})`);
-          } else if (config.expectation_type === 'expect_table_row_count_to_be_between') {
-            const actual = result.observed_value;
-            const min = config.kwargs.min_value;
-            const max = config.kwargs.max_value;
-            console.log(`  Row count: ${kleur.red().bold(actual)} (expected: ${kleur.gray(min + '-' + max)})`);
-          } else if (config.expectation_type.includes('unique')) {
-            const actual = result.observed_value;
-            const unexpected = result.unexpected_count || 0;
-            console.log(`  Duplicates: ${kleur.red().bold(unexpected)} (unique: ${kleur.green(actual)})`);
-          } else {
-            console.log(`  ${config.expectation_type}: ${kleur.red().bold(JSON.stringify(result.observed_value))}`);
-          }
+        // Separate warnings from failures
+        const warnings = failedExpectations.filter(e => {
+          const type = e.expectation_config.expectation_type;
+          return type.includes('unique') || type.includes('hash');
         });
+        const failures = failedExpectations.filter(e => !warnings.includes(e));
+        
+        if (failures.length > 0) {
+          console.log(`\n${kleur.red().bold('FAILURES:')}`);
+          failures.forEach(e => {
+            const config = e.expectation_config;
+            const result = e.result;
+            
+            if (config.expectation_type === 'expect_column_values_to_not_be_null') {
+              const column = config.kwargs.column;
+              const actualNullPercent = result.unexpected_percent || 0;
+              const threshold = (1 - config.kwargs.mostly) * 100;
+              const percentColor = actualNullPercent > threshold * 1.5 ? kleur.red : kleur.yellow;
+              console.log(`  ${kleur.cyan(column)}: ${percentColor().bold(actualNullPercent.toFixed(1) + '%')} null (max: ${kleur.gray(threshold.toFixed(1) + '%')})`);
+            } else if (config.expectation_type === 'expect_table_row_count_to_be_between') {
+              const actual = result.observed_value;
+              const min = config.kwargs.min_value;
+              const max = config.kwargs.max_value;
+              console.log(`  Row count: ${kleur.red().bold(actual)} (expected: ${kleur.gray(min + '-' + max)})`);
+            } else {
+              console.log(`  ${config.expectation_type}: ${kleur.red().bold(JSON.stringify(result.observed_value))}`);
+            }
+          });
+        }
+        
+        if (warnings.length > 0) {
+          console.log(`\n${kleur.yellow().bold('WARNINGS:')}`);
+          warnings.forEach(e => {
+            const config = e.expectation_config;
+            const result = e.result;
+            
+            if (config.expectation_type.includes('unique')) {
+              const actual = result.observed_value;
+              const unexpected = result.unexpected_count || 0;
+              console.log(`  Duplicates: ${kleur.yellow().bold(unexpected)} (unique: ${kleur.gray(actual)})`);
+            } else {
+              console.log(`  ${config.expectation_type}: ${kleur.yellow().bold(JSON.stringify(result.observed_value))}`);
+            }
+          });
+        }
       }
       
       console.log(`\n${kleur.dim(`Duration: ${duration}ms | Logs: logs/validation/${dataset}_${runId}.json`)}`);
