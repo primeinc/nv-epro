@@ -25,10 +25,31 @@ jobs:
           ORCH_RETRIES: 2
         run: |
           node orchestrate.js run auto
-      - name: Upload latest run folders (best-effort)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: runs_${{ github.run_id }}
-          path: data/nevada-epro/**/*
-          if-no-files-found: ignore
+      - name: Commit scraped data
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git for VERIFIED commits
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Switch to data branch (create if doesn't exist)
+          git fetch origin data:data 2>/dev/null || git checkout -b data
+          git checkout data
+          
+          # Add and commit data
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No data changes to commit"
+          else
+            git commit -m "🤖 Auto-scrape $(date -u '+%Y-%m-%d %H:%M UTC')
+
+            Orchestration ID: $(cat data/orchestrations/*/*/manifest.json | jq -r '.orchestration.id' | tail -1)
+            
+            🤖 Generated with GitHub Actions
+            Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            
+            # Push to data branch
+            git push -u origin data
+          fi
