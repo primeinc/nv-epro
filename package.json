@@ -11,7 +11,7 @@
     "vendor": "node scrape-vendor-cli.js",
     "ingest": "node ingest.js",
     "bronze:ingest": "node scripts/bronze-ingest.js",
-    "bronze:validate": "node scripts/bronze-validate.js",
+    "bronze:validate": "node scripts/bronze-validate.js --all",
     "analyze": "node scripts/analyze-dataset.js",
     "plan": "node orchestrate.js plan auto",
     "auto": "node orchestrate.js run auto"
