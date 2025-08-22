@@ -14,16 +14,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
       - run: |
-          npm ci
-          npx playwright install --with-deps chromium || true
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium || true
       - name: Run orchestrator
         env:
           DATA_ROOT: ${{ github.workspace }}/data
           ORCH_CONCURRENCY: 2
           ORCH_RETRIES: 2
-          MAX_BACKFILL_WINDOWS: 6
         run: |
           node orchestrate.js run auto
       - name: Upload latest run folders (best-effort)
