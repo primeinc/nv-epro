@@ -11,7 +11,13 @@
     "vendor": "node scrape-vendor-cli.js",
     "ingest": "node ingest.js",
     "bronze:ingest": "node scripts/bronze-ingest.js",
-    "bronze:validate": "node scripts/bronze-validate.js"
+    "bronze:validate": "node scripts/bronze-validate.js",
+    "analyze": "node scripts/analyze-dataset.js",
+    "plan": "node orchestrate.js plan auto",
+    "auto": "node orchestrate.js run auto",
+    "daily": "node orchestrate.js run daily",
+    "nightly": "node orchestrate.js run nightly",
+    "backfill": "node orchestrate.js run backfill-auto"
   },
   "keywords": [],
   "author": "",

@@ -136,16 +136,11 @@ async function planPOWindows(opts) {
     }
   }
 
-  // Plan last WINDOW_DAYS coverage (unless we're in backfill mode)
+  // For auto mode, don't generate daily PO windows - that's what daily/nightly modes are for
+  // Auto mode should only handle monthly backfill gaps, not daily coverage
   if (!opts.backfill) {
-    for (let i=1; i<=WINDOW_DAYS; i++) {
-      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()-i));
-      const key = ymd(d);
-      if (!covered.has(key)) {
-        const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1));
-        tasks.push({ kind:'window', dataset:'purchase_orders', start: toMMDDYYYY(d), end: toMMDDYYYY(next), label: key });
-      }
-    }
+    // Skip daily PO window generation in auto mode
+    // Use `pnpm run daily` or `pnpm run nightly` for recent PO coverage
   } else {
     // Backfill from BACKFILL_START to today, monthly, emit only months with uncovered days
     const start = new Date(BACKFILL_START + 'T00:00:00Z');
