@@ -14,10 +14,7 @@
     "bronze:validate": "node scripts/bronze-validate.js",
     "analyze": "node scripts/analyze-dataset.js",
     "plan": "node orchestrate.js plan auto",
-    "auto": "node orchestrate.js run auto",
-    "daily": "node orchestrate.js run daily",
-    "nightly": "node orchestrate.js run nightly",
-    "backfill": "node orchestrate.js run backfill-auto"
+    "auto": "node orchestrate.js run auto"
   },
   "keywords": [],
   "author": "",

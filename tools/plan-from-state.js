@@ -136,11 +136,40 @@ async function planPOWindows(opts) {
     }
   }
 
-  // For auto mode, don't generate daily PO windows - that's what daily/nightly modes are for
-  // Auto mode should only handle monthly backfill gaps, not daily coverage
+  // For auto mode: if no PO data exists, include full historical backfill + current month
+  // Otherwise just do current month updates
   if (!opts.backfill) {
-    // Skip daily PO window generation in auto mode
-    // Use `pnpm run daily` or `pnpm run nightly` for recent PO coverage
+    if (covered.size === 0) {
+      // No PO data exists - do full backfill from BACKFILL_START to today
+      const start = new Date(BACKFILL_START + 'T00:00:00Z');
+      let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+      while (cursor <= today) {
+        const monthStart = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1));
+        const monthEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth()+1, 0));
+        tasks.push({
+          kind: 'window',
+          dataset: 'purchase_orders',
+          start: toMMDDYYYY(monthStart),
+          end: toMMDDYYYY(monthEnd),
+          label: ymd(monthStart).slice(0,7)
+        });
+        cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth()+1, 1));
+      }
+    } else {
+      // PO data exists - just ensure current month is covered
+      const thisMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+      const thisMonthKey = ymd(thisMonth).slice(0,7);
+      if (!covered.has(thisMonthKey)) {
+        const lastOfMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth()+1, 0));
+        tasks.push({
+          kind: 'window',
+          dataset: 'purchase_orders',
+          start: toMMDDYYYY(thisMonth),
+          end: toMMDDYYYY(lastOfMonth),
+          label: thisMonthKey
+        });
+      }
+    }
   } else {
     // Backfill from BACKFILL_START to today, monthly, emit only months with uncovered days
     const start = new Date(BACKFILL_START + 'T00:00:00Z');

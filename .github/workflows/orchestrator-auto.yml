@@ -2,19 +2,9 @@ name: Orchestrator Auto
 
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        type: choice
-        options: [auto, daily, nightly, backfill-auto, backfill-pos]
-        default: auto
-      start:
-        required: false
-      end:
-        required: false
   schedule:
     - cron: "17 8 * * *"    # 08:17 UTC daily (03:17 America/Detroit) - auto mode
     - cron: "47 20 * * *"   # 20:47 UTC daily (15:47 America/Detroit) - auto mode
-    - cron: "17 4 * * *"    # 04:17 UTC daily (23:17 America/Detroit) - backfill-auto
 
 jobs:
   run:
@@ -35,25 +25,7 @@ jobs:
           ORCH_RETRIES: 2
           MAX_BACKFILL_WINDOWS: 6
         run: |
-          # Determine mode based on schedule or manual input
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            HOUR=$(date -u +%H)
-            if [ "$HOUR" = "04" ]; then
-              MODE="backfill-auto"
-            else
-              MODE="auto"
-            fi
-          else
-            MODE="${{ inputs.mode || 'auto' }}"
-          fi
-          
-          case "$MODE" in
-            auto)          node orchestrate.js run auto ;;
-            daily)         node orchestrate.js run daily ;;
-            nightly)       node orchestrate.js run nightly ;;
-            backfill-auto) node orchestrate.js run backfill-auto ;;
-            backfill-pos)  node orchestrate.js run backfill-pos --start "${{ inputs.start || '' }}" --end "${{ inputs.end || '' }}" ;;
-          esac
+          node orchestrate.js run auto
       - name: Upload latest run folders (best-effort)
         if: always()
         uses: actions/upload-artifact@v4

@@ -275,12 +275,8 @@ async function runTasks(tasks) {
 function usage() {
   console.log(`
 Usage:
-  node orchestrate.js plan auto       # Show plan without executing
-  node orchestrate.js run auto        # Execute the auto plan
-  node orchestrate.js run daily
-  node orchestrate.js run nightly
-  node orchestrate.js run backfill-auto  # Run bounded backfill (MAX_BACKFILL_WINDOWS=6)
-  node orchestrate.js run backfill-pos --start 2018-01-31 --end 2025-08-21
+  node orchestrate.js plan auto    # Show plan without executing
+  node orchestrate.js run auto     # Execute auto plan (snapshots + PO current month + full backfill if no data)
 
 Env:
   DATA_ROOT=./data (default)
@@ -355,57 +351,6 @@ async function main() {
     }
     const payload = JSON.parse(proc.stdout || '{"tasks":[]}');
     tasks = payload.tasks || [];
-  } else if (subcmd === 'daily') {
-    const today = new Date();
-    const yesterday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()-1));
-    tasks.push({ kind:'snapshot', dataset:'contracts', label:'all' });
-    tasks.push({ kind:'snapshot', dataset:'bids', label:'all' });
-    tasks.push({ kind:'snapshot', dataset:'vendors', label:'all' });
-    tasks.push({ kind:'window', dataset:'purchase_orders', start: toMMDDYYYY(yesterday), end: toMMDDYYYY(yesterday), label: ymd(yesterday) });
-  } else if (subcmd === 'nightly') {
-    const today = new Date();
-    const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()-14));
-    tasks.push({ kind:'snapshot', dataset:'contracts', label:'all' });
-    tasks.push({ kind:'snapshot', dataset:'bids', label:'all' });
-    tasks.push({ kind:'snapshot', dataset:'vendors', label:'all' });
-    for (let d = new Date(start); d <= end; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1))) {
-      const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1));
-      tasks.push({ kind:'window', dataset:'purchase_orders', start: toMMDDYYYY(d), end: toMMDDYYYY(next), label: ymd(d) });
-    }
-  } else if (subcmd === 'backfill-auto') {
-    // State-aware bounded backfill that reads manifests and only processes missing months
-    const maxWindows = parseInt(process.env.MAX_BACKFILL_WINDOWS || '6', 10);
-    const proc = spawnSync('node', [path.join('tools','plan-from-state.js'), '--backfill'], {
-      env: { ...process.env, DATA_ROOT },
-      encoding: 'utf8'
-    });
-    if (proc.status !== 0) {
-      console.error(proc.stdout || '');
-      console.error(proc.stderr || '');
-      process.exit(2);
-    }
-    const plan = JSON.parse(proc.stdout || '{"tasks":[]}');
-    // Filter to only PO windows and limit to maxWindows
-    const poWindows = (plan.tasks || [])
-      .filter(t => t.dataset === 'purchase_orders' && t.kind === 'window')
-      .slice(0, maxWindows);
-    
-    if (!poWindows.length) {
-      console.log('✅ Backfill complete: no uncovered months remaining.');
-      return;
-    }
-    
-    console.log(`📊 Found ${plan.tasks.filter(t => t.dataset === 'purchase_orders' && t.kind === 'window').length} uncovered PO windows`);
-    console.log(`🎯 Processing batch of ${poWindows.length} windows (max: ${maxWindows})`);
-    tasks = poWindows;
-  } else if (subcmd === 'backfill-pos') {
-    const startIso = args.start || '2018-01-31';
-    const endIso = args.end || new Date().toISOString().slice(0,10);
-    const windows = monthWindows(startIso, endIso);
-    for (const [s,e] of windows) {
-      tasks.push({ kind:'window', dataset:'purchase_orders', start: toMMDDYYYY(s), end: toMMDDYYYY(e), label: ymd(s).slice(0,7) });
-    }
   } else {
     return usage();
   }
