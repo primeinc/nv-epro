@@ -10,7 +10,7 @@
  * - vendors/vendor_all.csv
  */
 
-const { ingestToBronze } = require('./lib/bronze-ingestion');
+const { ingestToBronze } = require('../lib/bronze-ingestion');
 const path = require('path');
 const fs = require('fs').promises;
 

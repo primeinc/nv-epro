@@ -9,7 +9,9 @@
     "bid": "node scrape-bid-cli.js",
     "contract": "node scrape-contract-cli.js",
     "vendor": "node scrape-vendor-cli.js",
-    "ingest": "node ingest.js"
+    "ingest": "node ingest.js",
+    "bronze:ingest": "node scripts/bronze-ingest.js",
+    "bronze:validate": "node scripts/bronze-validate.js"
   },
   "keywords": [],
   "author": "",

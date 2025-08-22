@@ -23,7 +23,7 @@ const {
   emitEvent,
   writeOTelLog,
   generateRunId
-} = require('./openlineage-emitter');
+} = require('../lib/openlineage-emitter');
 
 /**
  * Run validation expectations on Bronze data
