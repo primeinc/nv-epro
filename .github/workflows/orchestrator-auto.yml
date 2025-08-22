@@ -17,8 +17,6 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container:
-      image: mcr.microsoft.com/playwright:v1.55.0-noble
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -27,9 +25,10 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps chromium
       - name: Checkout existing data
         run: |
-          git config --global --add safe.directory ${{ github.workspace }}
           git fetch origin data:data 2>/dev/null || true
           if git show-ref --verify --quiet refs/heads/data; then
             git checkout data -- data/ 2>/dev/null || true
