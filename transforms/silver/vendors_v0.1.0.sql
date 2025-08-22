@@ -14,72 +14,40 @@ transformed AS (
     
     -- Core fields
     "Vendor Name" AS vendor_name,
-    "Status" AS status,
     
     -- Location fields
+    "Address" AS address,
     "City" AS city,
     "State" AS state,
-    "Zip" AS zip,
-    "Country" AS country,
+    "Postal Code" AS postal_code,
     
-    -- Business classification
-    "Business Type" AS business_type,
-    "Commodity Codes" AS commodity_codes_raw,
-    
-    -- Parsed commodity codes (array if comma-separated)
-    CASE
-      WHEN "Commodity Codes" IS NOT NULL AND "Commodity Codes" != ''
-      THEN string_split("Commodity Codes", ',')
-      ELSE NULL
-    END AS commodity_codes_array,
-    
-    -- Count of commodity codes
-    CASE
-      WHEN "Commodity Codes" IS NOT NULL AND "Commodity Codes" != ''
-      THEN array_length(string_split("Commodity Codes", ','))
-      ELSE 0
-    END AS commodity_code_count,
+    -- Contact fields
+    "Contact Name" AS contact_name,
+    "Phone" AS phone,
     
     -- Derived columns
     CASE
-      WHEN "Status" IN ('Active', 'Approved') THEN TRUE
-      WHEN "Status" IN ('Inactive', 'Suspended', 'Debarred') THEN FALSE
-      ELSE NULL
-    END AS is_active,
-    
-    CASE
       WHEN "State" IN ('NV', 'Nevada') THEN TRUE
-      WHEN "State" IS NOT NULL AND "State" != '' THEN FALSE
-      ELSE NULL
+      ELSE FALSE
     END AS is_nevada_vendor,
     
-    CASE
-      WHEN "Country" IN ('US', 'USA', 'United States', '') OR "Country" IS NULL THEN TRUE
-      ELSE FALSE
-    END AS is_domestic,
+    -- Clean phone number for analysis
+    REGEXP_REPLACE("Phone", '[^0-9]', '') AS phone_digits_only,
     
-    -- Standardize state codes
+    -- Extract ZIP5 from postal code
     CASE
-      WHEN "State" = 'Nevada' THEN 'NV'
-      WHEN "State" = 'California' THEN 'CA'
-      WHEN "State" = 'Arizona' THEN 'AZ'
-      WHEN "State" = 'Utah' THEN 'UT'
-      WHEN LENGTH("State") = 2 THEN UPPER("State")
-      ELSE "State"
-    END AS state_code,
-    
-    -- Clean zip code (first 5 digits)
-    CASE
-      WHEN "Zip" IS NOT NULL AND LENGTH("Zip") >= 5
-      THEN SUBSTRING("Zip", 1, 5)
-      ELSE "Zip"
+      WHEN "Postal Code" IS NOT NULL
+      THEN SUBSTRING(REGEXP_REPLACE("Postal Code", '[^0-9]', ''), 1, 5)
+      ELSE NULL
     END AS zip5,
     
     -- Lineage columns from Bronze
     source_system,
     source_file,
+    source_file_hash,
     source_row,
     ingested_at,
+    bronze_run_id,
     row_hash AS bronze_row_hash,
     
     -- Silver metadata
@@ -98,6 +66,7 @@ WHERE 1=1
   AND vendor_id != ''
   AND vendor_name IS NOT NULL
   AND vendor_name != ''
-  -- Business logic validation
-  AND (state IS NULL OR LENGTH(state) <= 50)
-  AND (zip IS NULL OR LENGTH(zip) <= 10)
+  -- Remove test data
+  AND vendor_name NOT LIKE '%TEST%'
+  AND vendor_name NOT LIKE '%DEMO%'
+  AND vendor_name NOT LIKE '%DO NOT USE%'

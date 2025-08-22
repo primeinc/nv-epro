@@ -1,0 +1,155 @@
+name: Bronze-Silver Pipeline
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Orchestrator Auto"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  bronze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      
+      - name: Checkout data branch
+        run: |
+          git fetch origin data:data
+          git checkout data -- data/
+          git checkout dev
+      
+      - name: Run Bronze ingestion
+        run: |
+          echo "🔨 Processing raw data into Bronze layer..."
+          pnpm run bronze:ingest
+      
+      - name: Validate Bronze data
+        run: |
+          echo "✅ Validating Bronze data quality..."
+          pnpm run bronze:validate || exit_code=$?
+          if [ "${exit_code:-0}" -gt 1 ]; then
+            echo "❌ Bronze validation failed with critical errors"
+            exit $exit_code
+          elif [ "${exit_code:-0}" -eq 1 ]; then
+            echo "⚠️ Bronze validation passed with warnings"
+          else
+            echo "✅ Bronze validation passed"
+          fi
+      
+      - name: Upload Bronze artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bronze-data
+          path: data/bronze/**
+          retention-days: 7
+
+  silver:
+    needs: bronze
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      
+      - name: Download Bronze data
+        uses: actions/download-artifact@v4
+        with:
+          name: bronze-data
+          path: data/bronze/
+      
+      - name: Run Silver transformations
+        run: |
+          echo "🔨 Transforming Bronze to Silver layer..."
+          pnpm run silver:ingest
+      
+      - name: Upload Silver artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: silver-data
+          path: data/silver/**
+          retention-days: 30
+
+  commit:
+    needs: [bronze, silver]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+      
+      - name: Download Bronze data
+        uses: actions/download-artifact@v4
+        with:
+          name: bronze-data
+          path: data/bronze/
+      
+      - name: Download Silver data
+        uses: actions/download-artifact@v4
+        with:
+          name: silver-data
+          path: data/silver/
+      
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Commit Bronze and Silver data
+        run: |
+          # Switch to data branch
+          git fetch origin data:data
+          git checkout data
+          
+          # Add Bronze and Silver data
+          git add -f data/bronze/
+          git add -f data/silver/
+          
+          if git diff --staged --quiet; then
+            echo "No Bronze/Silver changes to commit"
+          else
+            # Get stats for commit message
+            bronze_count=$(find data/bronze -name "*.parquet" | wc -l)
+            silver_count=$(find data/silver -name "*.parquet" | wc -l)
+            
+            git commit -m "🏭 Bronze & Silver pipeline $(date -u '+%Y-%m-%d %H:%M UTC')
+            
+            Bronze datasets: $bronze_count
+            Silver datasets: $silver_count
+            
+            🤖 Generated with GitHub Actions
+            Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            
+            # Push to data branch
+            git push -u origin data
+          fi

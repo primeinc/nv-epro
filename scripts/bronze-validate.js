@@ -241,9 +241,10 @@ async function validateBronze(options) {
     const failedExpectations = expectations.filter(e => !e.success);
     const criticalFailures = failedExpectations.filter(e => {
       const type = e.expectation_config.expectation_type;
-      // For Bronze layer, only row_count is critical
-      // Duplicates are warnings only - raw data may have legitimate duplicates
-      return type.includes('row_count');
+      // Only row_count and content_hash are critical
+      // Duplicates (unique) are warnings since this is raw data
+      return type.includes('row_count') || 
+             type.includes('content_hash');
     });
     
     // Intermediate results only in pretty mode
@@ -271,6 +272,8 @@ async function validateBronze(options) {
       status = 'warning';
       exitCode = 1;
     }
+    
+    console.log(`DEBUG: exitCode=${exitCode}, status=${status}, failed=${failedExpectations.length}, critical=${criticalFailures.length}`);
     
     // Create validation results
     const validationResults = {
@@ -559,6 +562,7 @@ async function validateAllBronze(options = {}) {
     
     results.push(result);
     worstExitCode = Math.max(worstExitCode, result.exitCode);
+    console.log(`DEBUG validateAllBronze: ${dataset} exitCode=${result.exitCode}, worstExitCode now=${worstExitCode}`);
     
     // Add separator between datasets in pretty mode
     if (format === 'pretty' && i < datasetNames.length - 1) {
@@ -566,6 +570,7 @@ async function validateAllBronze(options = {}) {
     }
   }
   
+  console.log(`DEBUG validateAllBronze: FINAL worstExitCode=${worstExitCode}`);
   return {
     exitCode: worstExitCode,
     results
