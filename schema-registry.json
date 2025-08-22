@@ -55,15 +55,15 @@
         "effective_to": null,
         "columns": {
           "Contract #": "VARCHAR",
+          "Bid Solicitation #": "VARCHAR",
           "Description": "VARCHAR",
-          "Department": "VARCHAR",
-          "Buyer": "VARCHAR",
-          "Supplier": "VARCHAR",
-          "Start Date": "VARCHAR",
-          "End Date": "VARCHAR",
+          "Vendor": "VARCHAR",
+          "Type Code": "VARCHAR",
+          "Dollars Spent to Date": "VARCHAR",
+          "Organization": "VARCHAR",
           "Status": "VARCHAR",
-          "Contract Amount": "VARCHAR",
-          "Bid #": "VARCHAR"
+          "Begin Date": "VARCHAR",
+          "End Date": "VARCHAR"
         },
         "csv_options": {
           "header": true,

@@ -1,0 +1,78 @@
+{
+  "namespace": "bronze://nevada-epro",
+  "producer": "nv-epro://bronze-validation/0.1.0",
+  "version": "0.1.0",
+  "datasets": {
+    "BIDS": {
+      "pk": ["Bid Solicitation #"],
+      "min_rows": 1,
+      "max_rows": 10000000,
+      "expectations": {
+        "row_count": {"min": 1, "max": 10000000},
+        "columns_not_null": ["Bid Solicitation #", "Organization Name", "Buyer", "Description", "Bid Opening Date", "Status"],
+        "null_rate_max": {
+          "Contract #": 0.85,
+          "Bid Holder List": 0.85,
+          "Awarded Vendor(s)": 0.6,
+          "Alternate Id": 0.6
+        }
+      }
+    },
+    "CONTRACTS": {
+      "pk": ["Contract #"],
+      "min_rows": 1,
+      "max_rows": 10000000,
+      "expectations": {
+        "row_count": {"min": 1, "max": 10000000},
+        "columns_not_null": ["Contract #", "Description", "Vendor", "Dollars Spent to Date", "Organization", "Status", "Begin Date", "End Date"],
+        "null_rate_max": {
+          "Bid Solicitation #": 1.0,
+          "Type Code": 1.0
+        }
+      }
+    },
+    "PURCHASE_ORDERS": {
+      "pk": ["PO #"],
+      "min_rows": 1,
+      "max_rows": 10000000,
+      "expectations": {
+        "row_count": {"min": 1, "max": 10000000},
+        "columns_not_null": ["PO #", "Description", "Vendor", "Organization", "Department", "Buyer", "Status", "Sent Date", "Total"],
+        "null_rate_max": {}
+      }
+    },
+    "VENDORS": {
+      "pk": ["Vendor ID"],
+      "min_rows": 1,
+      "max_rows": 10000000,
+      "expectations": {
+        "row_count": {"min": 1, "max": 10000000},
+        "columns_not_null": ["Vendor ID", "Vendor Name", "Contact Name", "Phone"],
+        "null_rate_max": {
+          "Address": 1.0,
+          "City": 1.0,
+          "State": 1.0,
+          "Postal Code": 1.0
+        }
+      }
+    }
+  },
+  "slo": {
+    "target_completeness": 0.99,
+    "target_freshness_hours": 24,
+    "target_uniqueness": 1.0,
+    "target_availability": 0.999
+  },
+  "thresholds": {
+    "critical": {
+      "null_rate": 0.9,
+      "duplication_rate": 0.5,
+      "staleness_hours": 72
+    },
+    "warning": {
+      "null_rate": 0.5,
+      "duplication_rate": 0.1,
+      "staleness_hours": 24
+    }
+  }
+}
