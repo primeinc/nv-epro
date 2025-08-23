@@ -25,6 +25,44 @@ function generateSnapshotId() {
 }
 
 /**
+ * Check if Silver transformation already exists for this exact Bronze state
+ */
+async function silverExists(dataset, bronzeStateHash, transformVersion, silverBasePath) {
+  const fg = require('fast-glob');
+  const pattern = path.join(silverBasePath, dataset, `version=${transformVersion}`, '**/bronze_state_hash.txt')
+    .replace(/\\/g, '/');
+  
+  try {
+    const hashFiles = await fg(pattern);
+    for (const hashFile of hashFiles) {
+      const existingHash = await fs.readFile(hashFile, 'utf-8');
+      if (existingHash.trim() === bronzeStateHash) {
+        const silverPath = path.join(path.dirname(hashFile), 'data.parquet');
+        return { exists: true, path: silverPath };
+      }
+    }
+  } catch (error) {
+    // No existing Silver data
+  }
+  
+  return { exists: false };
+}
+
+/**
+ * Calculate hash of Bronze state (files + transform version)
+ */
+function calculateBronzeStateHash(bronzeFiles, transformVersion) {
+  // Sort files for deterministic hash
+  const sortedFiles = [...bronzeFiles].sort();
+  const stateString = JSON.stringify({
+    files: sortedFiles,
+    transform: transformVersion,
+    count: sortedFiles.length
+  });
+  return crypto.createHash('sha256').update(stateString).digest('hex');
+}
+
+/**
  * Apply Silver transformation
  */
 async function transformToSilver(dataset, options = {}) {
@@ -72,6 +110,36 @@ async function transformToSilver(dataset, options = {}) {
   }
   
   console.log(`   Found ${bronzeFiles.length} Bronze file(s)`);
+  
+  // Check if we've already transformed this exact Bronze state
+  const bronzeStateHash = calculateBronzeStateHash(bronzeFiles, actualVersion);
+  const existingCheck = await silverExists(dataset, bronzeStateHash, actualVersion, silverBasePath);
+  
+  if (existingCheck.exists) {
+    console.log(`   ⏭️  Skipping: Already transformed (hash: ${bronzeStateHash.substring(0, 8)}...)`);
+    console.log(`   📁 Existing Silver: ${existingCheck.path}`);
+    
+    // Load and return the existing manifest
+    const manifestPath = path.join(path.dirname(existingCheck.path), 'manifest.json');
+    try {
+      const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8'));
+      return {
+        success: true,
+        skipped: true,
+        bronze_state_hash: bronzeStateHash,
+        ...manifest
+      };
+    } catch (error) {
+      // If manifest is missing, still return success
+      return {
+        success: true,
+        skipped: true,
+        bronze_state_hash: bronzeStateHash,
+        silver_path: existingCheck.path,
+        message: 'Silver data already exists for this Bronze state'
+      };
+    }
+  }
   
   // Connect to DuckDB
   const conn = await duckdb.DuckDBConnection.create();
@@ -126,12 +194,17 @@ async function transformToSilver(dataset, options = {}) {
     await conn.run(exportSql);
     console.log(`   ✅ Written to: ${silverPath}`);
     
+    // Save Bronze state hash for idempotency
+    const hashPath = path.join(path.dirname(silverPath), 'bronze_state_hash.txt');
+    await fs.writeFile(hashPath, bronzeStateHash);
+    
     // Create manifest
     const manifest = {
       dataset,
       snapshot_id: snapshotId,
       transform_version: actualVersion,
       transform_sql: sqlPath,
+      bronze_state_hash: bronzeStateHash,
       bronze_files: bronzeFiles.length,
       bronze_rows: bronzeRowCount,
       silver_rows: silverRowCount,
