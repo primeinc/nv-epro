@@ -111,6 +111,17 @@ async function transformToSilver(dataset, options = {}) {
   
   console.log(`   Found ${bronzeFiles.length} Bronze file(s)`);
   
+  // Show which Bronze file we're using
+  if (bronzeFiles.length === 1) {
+    const parts = bronzeFiles[0].split(/[\/\\]/);
+    const sha = parts.find(p => p.startsWith('sha256='));
+    const date = parts.find(p => p.startsWith('ingest_date='));
+    console.log(`     Using: ${date || 'unknown-date'} / ${sha ? sha.substring(7, 15) + '...' : 'unknown-hash'}`);
+  } else if (bronzeFiles.length > 1) {
+    console.log(`     WARNING: Multiple Bronze files found - this is unusual`);
+    bronzeFiles.forEach(f => console.log(`       - ${f}`));
+  }
+  
   // Check if we've already transformed this exact Bronze state
   const bronzeStateHash = calculateBronzeStateHash(bronzeFiles, actualVersion);
   const existingCheck = await silverExists(dataset, bronzeStateHash, actualVersion, silverBasePath);

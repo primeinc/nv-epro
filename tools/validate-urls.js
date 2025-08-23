@@ -204,7 +204,7 @@ async function testUrl(page, url, recordType) {
 async function validateDataset(dataset, page) {
   const results = {
     dataset,
-    tested: 0,
+    urls: 0,       // Total URLs tested (including holder lists)
     passed: 0,
     failed: 0,
     errors: [],
@@ -276,7 +276,22 @@ async function validateDataset(dataset, page) {
     }
   }
   
+  // Count total checks upfront
+  let totalChecks = ids.length;
+  let holderListChecks = 0;
+  if (dataset === 'bids') {
+    for (const id of ids) {
+      if (bidsWithHolderLists.has(id)) {
+        holderListChecks++;
+      }
+    }
+    totalChecks += holderListChecks;
+  }
+  
   console.log(`  Testing ${ids.length} ${dataset} URLs from ${recentRun.date}...`);
+  if (holderListChecks > 0) {
+    console.log(`    (Plus ${holderListChecks} holder list checks for bids with public lists)`);
+  }
   
   // Test each ID
   for (const id of ids) {
@@ -285,7 +300,7 @@ async function validateDataset(dataset, page) {
     if (!isValidIdFormat(id, recordType)) {
       results.errors.push(`Invalid ID format: ${id}`);
       results.failed++;
-      results.tested++;
+      results.urls++;
       continue;
     }
     
@@ -293,7 +308,7 @@ async function validateDataset(dataset, page) {
     const url = buildUrl(id, recordType);
     const result = await testUrl(page, url, recordType);
     
-    results.tested++;
+    results.urls++;
     if (result.success) {
       results.passed++;
       process.stdout.write('.');
@@ -316,8 +331,8 @@ async function validateDataset(dataset, page) {
       const holderUrl = buildUrl(id, 'bid_holder_list');
       const holderResult = await testUrl(page, holderUrl, 'bid_holder_list');
       
-      // Count this as an additional test
-      results.tested++;
+      // Count this as an additional URL
+      results.urls++;
       if (holderResult.success) {
         results.passed++;
         if (holderResult.hasPublicList) {
@@ -348,6 +363,7 @@ async function validateDataset(dataset, page) {
   }
   
   console.log('');
+  console.log(`  ✓ ${results.passed}/${results.urls} passed (${Math.round(results.passed/results.urls*100)}%)`);
   return results;
 }
 
@@ -391,13 +407,13 @@ async function validateUrls() {
       const result = await validateDataset(dataset, page);
       results[dataset] = result;
       
-      totalTested += result.tested;
+      totalTested += result.urls;
       totalPassed += result.passed;
       totalFailed += result.failed;
       
-      if (result.tested > 0) {
-        const successRate = Math.round(result.passed / result.tested * 100);
-        console.log(`  ✓ ${result.passed}/${result.tested} passed (${successRate}%)`);
+      if (result.urls > 0) {
+        const successRate = Math.round(result.passed / result.urls * 100);
+        console.log(`  ✓ ${result.passed}/${result.urls} passed (${successRate}%)`);
         
         if (result.errors.length > 0 && result.errors.length <= 3) {
           result.errors.forEach(err => console.log(`    ⚠️  ${err}`));

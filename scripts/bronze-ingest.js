@@ -255,19 +255,23 @@ async function ingestAllDatasets() {
     }
   });
   
-  // Write summary manifest
-  const manifestPath = path.join('data/bronze', `manifest_${runId}.json`);
-  await fs.writeFile(manifestPath, JSON.stringify({
-    run_id: runId,
-    timestamp: new Date().toISOString(),
-    datasets_processed: results.length,
-    successful: successful.length - skipped.length,
-    skipped: skipped.length,
-    failed: failed.length,
-    results
-  }, null, 2));
-  
-  console.log(`\n📝 Manifest written to: ${manifestPath}`);
+  // Only write summary manifest if something was actually processed
+  if ((successful.length - skipped.length) > 0 || failed.length > 0) {
+    const manifestPath = path.join('data/bronze', `manifest_${runId}.json`);
+    await fs.writeFile(manifestPath, JSON.stringify({
+      run_id: runId,
+      timestamp: new Date().toISOString(),
+      datasets_processed: results.length,
+      successful: successful.length - skipped.length,
+      skipped: skipped.length,
+      failed: failed.length,
+      results
+    }, null, 2));
+    
+    console.log(`\n📝 Manifest written to: ${manifestPath}`);
+  } else {
+    console.log(`\n📝 No manifest written (all datasets were skipped)`);
+  }
 }
 
 // Run if called directly

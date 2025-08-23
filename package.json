@@ -17,6 +17,7 @@
     "validation:refresh": "pnpm run validation:reference && pnpm run validation:config",
     "pipeline:guard": "node scripts/require-validation.js",
     "debug:po-consolidate": "node scripts/debug/raw-po-consolidator.js",
+    "monitor:po-ranges": "node scripts/monitor-po-ranges.js",
     "bronze:ingest": "node scripts/bronze-ingest.js",
     "bronze:validate": "node scripts/bronze-validate.js --all",
     "silver:ingest": "node scripts/silver-ingest.js",
