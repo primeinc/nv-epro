@@ -73,11 +73,11 @@ function validateDate(dateStr, label) {
     throw new Error(`Invalid date: ${label}. Nevada ePro data only available from January 31, 2018 onwards.`);
   }
   
-  // Don't allow future dates
+  // Allow reasonable future dates (up to 1 year ahead for flexibility)
   const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  if (date > today) {
-    throw new Error(`Invalid date: ${label}. Cannot retrieve data from the future.`);
+  const oneYearFromNow = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+  if (date > oneYearFromNow) {
+    throw new Error(`Invalid date: ${label}. Date too far in the future (max 1 year ahead).`);
   }
 }
 
@@ -100,6 +100,31 @@ function parseArgs(args) {
       type: 'po',
       poNumbers: args
     };
+  }
+  
+  // Check for date range format: MM/DD/YYYY MM/DD/YYYY
+  if (args.length === 2) {
+    const datePattern = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+    if (args.every(arg => datePattern.test(arg))) {
+      const startDate = args[0];
+      const endDate = args[1];
+      
+      // Validate both dates
+      validateDate(startDate, startDate);
+      validateDate(endDate, endDate);
+      
+      // Create label for file naming
+      const startLabel = startDate.replace(/\//g, '');
+      const endLabel = endDate.replace(/\//g, '');
+      const label = `${startLabel}_to_${endLabel}`;
+      
+      return {
+        type: 'date',
+        startDate: startDate,
+        endDate: endDate,
+        label: label
+      };
+    }
   }
 
   // American format parsing
@@ -517,9 +542,38 @@ async function scrapePOs(startDate, endDate, label) {
     await page.waitForSelector(lastSelector, { timeout: NAV_TIMEOUT_MS });
     await sleep(THROTTLE_MS);
     
+    // Check result count before attempting CSV export
+    let recordCount = 0;
+    try {
+      await page.waitForSelector('.ui-paginator-current', { timeout: 5000 });
+      const paginatorText = await page.textContent('.ui-paginator-current');
+      const match = paginatorText?.match(/of\s+(\d+)/);
+      recordCount = match ? parseInt(match[1]) : 0;
+      console.log(`Found ${recordCount.toLocaleString()} records`);
+      
+      if (recordCount > 50000) {
+        throw new Error(`Too many results: ${recordCount.toLocaleString()} records found. CSV export limited to 50,000 records. Use a smaller date range.`);
+      }
+    } catch (e) {
+      if (e.message.includes('Too many results')) throw e;
+      console.log('Could not get record count from page');
+    }
+    
     stage = 'csv_export';
     const downloadTimeout = getDownloadTimeout(startDate, endDate);
     console.log(`Clicking CSV export (timeout: ${downloadTimeout/1000}s)...`);
+    
+    // Check if CSV export is available
+    const csvAvailable = await page.evaluate(() => {
+      const images = Array.from(document.querySelectorAll('img'));
+      const csvImage = images.find(img => img.src && img.src.includes('csv'));
+      return !!csvImage;
+    });
+    
+    if (!csvAvailable) {
+      throw new Error('CSV export not available. This usually means the date range is too large or returned no results. Try a smaller date range.');
+    }
+    
     const downloadPromise = page.waitForEvent('download', { timeout: downloadTimeout });
     await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
