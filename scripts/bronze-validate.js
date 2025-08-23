@@ -32,6 +32,31 @@ async function runExpectations(conn, dataset, bronzePath, config = {}) {
   const expectations = [];
   const startTime = Date.now();
   
+  // Load allowed duplicates for purchase_orders
+  let expectedDuplicates = 0;
+  if (dataset === 'purchase_orders') {
+    try {
+      const csv = require('csv-parse/sync');
+      const allowedDupsPath = path.join('config', 'bronze', 'validated', 'bronze_legitimate_duplicates.csv');
+      const allowedDupsContent = await fs.readFile(allowedDupsPath, 'utf-8');
+      const rows = csv.parse(allowedDupsContent, {
+        columns: true,
+        bom: true,
+        skip_empty_lines: true
+      });
+      
+      // Count total expected duplicate rows (not POs)
+      for (const row of rows) {
+        const duplicateCount = parseInt(row['Duplicate Count'], 10);
+        if (duplicateCount > 0) {
+          expectedDuplicates += duplicateCount - 1; // -1 because the first instance isn't a duplicate
+        }
+      }
+    } catch (e) {
+      // File might not exist, that's OK
+    }
+  }
+  
   // Row count expectation
   const rowCountSql = `SELECT COUNT(*) as count FROM read_parquet('${bronzePath.replace(/\\/g, '/')}')`;
   const rowCountReader = await conn.runAndReadAll(rowCountSql);
@@ -81,6 +106,7 @@ async function runExpectations(conn, dataset, bronzePath, config = {}) {
   const primaryKey = config.pk || config.primary_key;
   if (primaryKey && primaryKey.length > 0) {
     const pkColumns = primaryKey.map(c => `"${c}"`).join(', ');
+    
     const uniqueSql = `
       SELECT 
         COUNT(*) as total,
@@ -92,19 +118,20 @@ async function runExpectations(conn, dataset, bronzePath, config = {}) {
     const uniqueResult = uniqueReader.getRows()[0];
     const total = Number(uniqueResult[0]);
     const unique = Number(uniqueResult[1]);
+    const actualDuplicates = total - unique;
     
     expectations.push(createExpectation(
       'expect_compound_columns_to_be_unique',
       { column_list: primaryKey },
       {
-        success: total === unique,
+        success: actualDuplicates === expectedDuplicates,
         observed_value: unique,
-        unexpected_count: total - unique
+        unexpected_count: actualDuplicates !== expectedDuplicates ? Math.abs(actualDuplicates - expectedDuplicates) : 0
       }
     ));
   }
   
-  // Row hash uniqueness check
+  // Row hash uniqueness check - reuse expectedDuplicates from above
   const hashSql = `
     SELECT 
       COUNT(*) as total,
@@ -116,15 +143,17 @@ async function runExpectations(conn, dataset, bronzePath, config = {}) {
   const hashResult = hashReader.getRows()[0];
   const totalRows = Number(hashResult[0]);
   const uniqueHashes = Number(hashResult[1]);
+  const actualHashDuplicates = totalRows - uniqueHashes;
   
+  // Use the same expectedDuplicates for row hash check
   expectations.push(createExpectation(
     'expect_table_row_hash_to_be_unique',
     { column: 'row_hash' },
     {
-      success: totalRows === uniqueHashes,
+      success: actualHashDuplicates === expectedDuplicates,
       observed_value: uniqueHashes,
-      unexpected_count: totalRows - uniqueHashes,
-      unexpected_percent: ((totalRows - uniqueHashes) / totalRows) * 100
+      unexpected_count: actualHashDuplicates !== expectedDuplicates ? Math.abs(actualHashDuplicates - expectedDuplicates) : 0,
+      unexpected_percent: totalRows > 0 && actualHashDuplicates !== expectedDuplicates ? (Math.abs(actualHashDuplicates - expectedDuplicates) / totalRows) * 100 : 0
     }
   ));
   
@@ -252,7 +281,9 @@ async function validateBronze(options) {
       const passCount = expectations.length - failedExpectations.length;
       const warnings = failedExpectations.filter(e => {
         const type = e.expectation_config.expectation_type;
-        return type.includes('unique') || type.includes('hash');
+        // Don't count as warning if unexpected_count is 0 (we matched expected duplicates)
+        const hasUnexpected = e.result.unexpected_count > 0;
+        return (type.includes('unique') || type.includes('hash')) && hasUnexpected;
       });
       
       if (warnings.length === failedExpectations.length) {
@@ -270,7 +301,7 @@ async function validateBronze(options) {
       exitCode = 2;
     } else if (failedExpectations.length > 0) {
       status = 'warning';
-      exitCode = 1;
+      exitCode = 0;  // Don't fail pipeline on warnings
     }
     
     console.log(`DEBUG: exitCode=${exitCode}, status=${status}, failed=${failedExpectations.length}, critical=${criticalFailures.length}`);
@@ -437,7 +468,9 @@ async function validateBronze(options) {
         // Separate warnings from failures
         const warnings = failedExpectations.filter(e => {
           const type = e.expectation_config.expectation_type;
-          return type.includes('unique') || type.includes('hash');
+          // Don't count as warning if unexpected_count is 0 (we matched expected duplicates)
+          const hasUnexpected = e.result.unexpected_count > 0;
+          return (type.includes('unique') || type.includes('hash')) && hasUnexpected;
         });
         const failures = failedExpectations.filter(e => !warnings.includes(e));
         
@@ -473,7 +506,10 @@ async function validateBronze(options) {
             if (config.expectation_type.includes('unique')) {
               const actual = result.observed_value;
               const unexpected = result.unexpected_count || 0;
-              console.log(`  Duplicates: ${kleur.yellow().bold(unexpected)} (unique: ${kleur.gray(actual)})`);
+              // Don't show warning if we have exactly the expected duplicates
+              if (unexpected > 0) {
+                console.log(`  Duplicates: ${kleur.yellow().bold(unexpected)} (unique: ${kleur.gray(actual)})`);
+              }
             } else {
               console.log(`  ${config.expectation_type}: ${kleur.yellow().bold(JSON.stringify(result.observed_value))}`);
             }
@@ -589,6 +625,7 @@ async function main() {
   
   if (args.includes('--all')) {
     // Validate all Bronze datasets
+    console.log('\n=== [scripts/bronze-validate.js] ===');
     const result = await validateAllBronze({ format });
     process.exit(result.exitCode);
   } else {

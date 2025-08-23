@@ -65,6 +65,7 @@ async function ingestAllDatasets() {
   const runId = `bronze_batch_${Date.now()}`;
   const results = [];
   
+  console.log('\n=== [scripts/bronze-ingest.js] ===');
   console.log('🚀 Starting Bronze ingestion for all datasets\n');
   console.log('=' .repeat(60));
   

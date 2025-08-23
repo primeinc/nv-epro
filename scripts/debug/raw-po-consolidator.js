@@ -126,6 +126,7 @@ function getFileDate(filePath) {
  * Main processing
  */
 async function main() {
+  console.log('\n=== [scripts/debug/raw-po-consolidator.js] ===');
   console.log('🔍 Finding all PO CSV files...\n');
   
   // Load allowed duplicates configuration
@@ -196,7 +197,10 @@ async function main() {
   }
   
   // Output deduplicated data
-  const outputPath = 'data/purchase_orders_deduped.csv';
+  // Ensure debug output directory exists
+  const debugDir = 'debug';
+  await fs.mkdir(debugDir, { recursive: true }).catch(() => {});  // Ignore error if exists
+  const outputPath = path.join(debugDir, 'purchase_orders_deduped.csv');
   const allRows = finalRows;
   
   // Sort by sent date and PO# for stable sorting
@@ -297,7 +301,7 @@ async function main() {
     }
     
     // Save validation metadata
-    const validationPath = 'data/purchase_orders_validation.json';
+    const validationPath = path.join(debugDir, 'purchase_orders_validation.json');
     const validation = {
       timestamp: new Date().toISOString(),
       eproWebsiteCount: eproTotal,

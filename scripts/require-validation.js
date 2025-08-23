@@ -31,4 +31,4 @@ if (ageInDays > 30) {
   console.warn('   Consider running: pnpm run validation:refresh');
 }
 
-console.log('✅ Validation config present');
+console.log('✅ [scripts/require-validation.js] Validation config present');

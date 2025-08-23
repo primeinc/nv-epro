@@ -16,11 +16,11 @@
     "validation:config": "node validation/extract-legitimate-duplicates.js",
     "validation:refresh": "pnpm run validation:reference && pnpm run validation:config",
     "pipeline:guard": "node scripts/require-validation.js",
-    "pipeline:consolidate": "node scripts/raw-po-consolidator.js",
+    "debug:po-consolidate": "node scripts/debug/raw-po-consolidator.js",
     "bronze:ingest": "node scripts/bronze-ingest.js",
     "bronze:validate": "node scripts/bronze-validate.js --all",
     "silver:ingest": "node scripts/silver-ingest.js",
-    "pipeline:post-scrape": "pnpm run pipeline:guard && pnpm run pipeline:consolidate && pnpm run bronze:ingest && pnpm run bronze:validate && pnpm run silver:ingest",
+    "pipeline:post-scrape": "pnpm run pipeline:guard && pnpm run bronze:ingest && pnpm run bronze:validate && pnpm run silver:ingest",
     "pipeline": "pnpm run auto && pnpm run pipeline:post-scrape"
   },
   "keywords": [],

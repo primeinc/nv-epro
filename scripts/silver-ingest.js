@@ -175,6 +175,7 @@ async function transformAllToSilver() {
   const datasets = ['bids', 'purchase_orders', 'contracts', 'vendors'];
   const results = [];
   
+  console.log('\n=== [scripts/silver-ingest.js] ===');
   console.log('🚀 Starting Silver layer transformation\n');
   console.log('=' .repeat(60));
   
