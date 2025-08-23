@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "run": {
+    "id": "run_20250823T234612.375Z_9fd7d37",
+    "dataset": "vendors",
+    "label": "all",
+    "startTime": "2025-08-23T23:46:12.376Z",
+    "endTime": "2025-08-23T23:46:18.348Z",
+    "durationMs": 5972,
+    "status": "success",
+    "error": null
+  },
+  "input": {
+    "parameters": {},
+    "argv": [],
+    "command": "node scrape-vendor-cli.js "
+  },
+  "environment": {
+    "platform": "linux",
+    "nodeVersion": "v22.18.0",
+    "playwrightVersion": "1.55.0",
+    "chromiumVersion": "unknown",
+    "dataRoot": "/home/runner/work/nv-epro/nv-epro/data",
+    "git": {
+      "branch": "dev",
+      "sha": "9fd7d373e4a6968164ebf0082e16af3bfc5a529b",
+      "shortSha": "9fd7d37"
+    }
+  },
+  "output": {
+    "outputDir": "files",
+    "downloadDir": "downloads",
+    "files": [
+      {
+        "name": "vendor_all.csv",
+        "sizeBytes": 1509364,
+        "kind": "csv",
+        "records": 19574
+      }
+    ]
+  },
+  "source": {
+    "system": "Nevada eProcurement",
+    "url": "https://nevadaepro.com",
+    "finalUrl": "https://nevadaepro.com/bso/view/search/external/advancedSearchVendor.xhtml",
+    "accessedAt": "2025-08-23T23:46:12.376Z"
+  },
+  "uiWindow": null
+}

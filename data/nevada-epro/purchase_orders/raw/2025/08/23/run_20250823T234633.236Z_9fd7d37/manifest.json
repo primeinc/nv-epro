@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "run": {
+    "id": "run_20250823T234633.236Z_9fd7d37",
+    "dataset": "purchase_orders",
+    "label": "07012023_to_09282025",
+    "startTime": "2025-08-23T23:46:33.237Z",
+    "endTime": "2025-08-23T23:46:47.262Z",
+    "durationMs": 14025,
+    "status": "success",
+    "error": null
+  },
+  "input": {
+    "parameters": {
+      "startDate": "07/01/2023",
+      "endDate": "09/28/2025"
+    },
+    "argv": [
+      "07/01/2023",
+      "09/28/2025",
+      "07012023_to_09282025"
+    ],
+    "command": "node scrape-po-cli.js 07/01/2023 09/28/2025 07012023_to_09282025"
+  },
+  "environment": {
+    "platform": "linux",
+    "nodeVersion": "v22.18.0",
+    "playwrightVersion": "1.55.0",
+    "chromiumVersion": "unknown",
+    "dataRoot": "/home/runner/work/nv-epro/nv-epro/data",
+    "git": {
+      "branch": "dev",
+      "sha": "9fd7d373e4a6968164ebf0082e16af3bfc5a529b",
+      "shortSha": "9fd7d37"
+    }
+  },
+  "output": {
+    "outputDir": "files",
+    "downloadDir": "downloads",
+    "files": [
+      {
+        "name": "po_07012023_to_09282025.csv",
+        "sizeBytes": 9686377,
+        "kind": "csv",
+        "records": 47445
+      }
+    ]
+  },
+  "source": {
+    "system": "Nevada eProcurement",
+    "url": "https://nevadaepro.com",
+    "finalUrl": "https://nevadaepro.com/bso/view/search/external/advancedSearchPurchaseOrder.xhtml",
+    "accessedAt": "2025-08-23T23:46:33.237Z"
+  },
+  "uiWindow": null
+}

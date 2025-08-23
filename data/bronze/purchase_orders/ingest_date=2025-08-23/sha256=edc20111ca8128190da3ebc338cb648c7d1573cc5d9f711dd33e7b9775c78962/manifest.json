@@ -1,0 +1,45 @@
+{
+  "dataset": "purchase_orders",
+  "bronze_path": "data/bronze/purchase_orders/ingest_date=2025-08-23/sha256=edc20111ca8128190da3ebc338cb648c7d1573cc5d9f711dd33e7b9775c78962/data.parquet",
+  "source_file": "/home/runner/work/nv-epro/nv-epro/data/.temp_consolidated_pos.csv",
+  "source_file_hash": "edc20111ca8128190da3ebc338cb648c7d1573cc5d9f711dd33e7b9775c78962",
+  "source_file_bytes": 17978879,
+  "row_count": 96985,
+  "unique_rows": 96822,
+  "ingested_at": "2025-08-23T23:48:32.019Z",
+  "ingest_duration_ms": 1983,
+  "run_id": "bronze_batch_1755992909966_consolidated",
+  "schema_version": "v0.1.0",
+  "validation": {
+    "passed": true,
+    "row_count": 96985,
+    "unique_rows": 96822,
+    "status": "healthy",
+    "timestamp": "2025-08-23T23:48:32.643Z",
+    "run_id": "bronze-2a8f86ede9ffb839",
+    "has_warnings": false,
+    "statistics": {
+      "evaluated_expectations": 13,
+      "successful_expectations": 13,
+      "unsuccessful_expectations": 0
+    },
+    "failures": [],
+    "warnings": [],
+    "metrics": {
+      "volume": {
+        "row_count": 96985,
+        "unique_rows": 96822,
+        "duplicate_rows": 163,
+        "bytes_min": 17978879,
+        "bytes_max": 17978879,
+        "bytes_avg": 17978879
+      },
+      "freshness": {
+        "first_ingested": "2025-08-23T23:48:31.657Z",
+        "last_ingested": "2025-08-23T23:48:31.657Z",
+        "age_hours": 0.00030694444444444443,
+        "ingestion_days": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "run": {
+    "id": "run_20250823T234606.835Z_9fd7d37",
+    "dataset": "bids",
+    "label": "all",
+    "startTime": "2025-08-23T23:46:06.837Z",
+    "endTime": "2025-08-23T23:47:55.197Z",
+    "durationMs": 108360,
+    "status": "success",
+    "error": null
+  },
+  "input": {
+    "parameters": {},
+    "argv": [],
+    "command": "node scrape-bid-cli.js "
+  },
+  "environment": {
+    "platform": "linux",
+    "nodeVersion": "v22.18.0",
+    "playwrightVersion": "1.55.0",
+    "chromiumVersion": "unknown",
+    "dataRoot": "/home/runner/work/nv-epro/nv-epro/data",
+    "git": {
+      "branch": "dev",
+      "sha": "9fd7d373e4a6968164ebf0082e16af3bfc5a529b",
+      "shortSha": "9fd7d37"
+    }
+  },
+  "output": {
+    "outputDir": "files",
+    "downloadDir": "downloads",
+    "files": [
+      {
+        "name": "bid_all.csv",
+        "sizeBytes": 557145,
+        "kind": "csv",
+        "records": 2675
+      }
+    ]
+  },
+  "source": {
+    "system": "Nevada eProcurement",
+    "url": "https://nevadaepro.com",
+    "finalUrl": "https://nevadaepro.com/bso/view/search/external/advancedSearchBid.xhtml",
+    "accessedAt": "2025-08-23T23:46:06.837Z"
+  },
+  "uiWindow": null
+}

@@ -1,0 +1,45 @@
+{
+  "dataset": "contracts",
+  "bronze_path": "data/bronze/contracts/ingest_date=2025-08-23/sha256=a4f6c783f00fac604800af7102901b921a9171335a74324e65c91c339926a46a/data.parquet",
+  "source_file": "data/nevada-epro/contracts/raw/2025/08/23/run_20250823T234606.817Z_9fd7d37/files/contract_all.csv",
+  "source_file_hash": "a4f6c783f00fac604800af7102901b921a9171335a74324e65c91c339926a46a",
+  "source_file_bytes": 263123,
+  "row_count": 1607,
+  "unique_rows": 1607,
+  "ingested_at": "2025-08-23T23:48:32.054Z",
+  "ingest_duration_ms": 26,
+  "run_id": "run_20250823T234606.817Z_9fd7d37",
+  "schema_version": "v0.1.0",
+  "validation": {
+    "passed": true,
+    "row_count": 1607,
+    "unique_rows": 1607,
+    "status": "healthy",
+    "timestamp": "2025-08-23T23:48:32.621Z",
+    "run_id": "bronze-bee5ecc079f7a775",
+    "has_warnings": false,
+    "statistics": {
+      "evaluated_expectations": 14,
+      "successful_expectations": 14,
+      "unsuccessful_expectations": 0
+    },
+    "failures": [],
+    "warnings": [],
+    "metrics": {
+      "volume": {
+        "row_count": 1607,
+        "unique_rows": 1607,
+        "duplicate_rows": 0,
+        "bytes_min": 263123,
+        "bytes_max": 263123,
+        "bytes_avg": 263123
+      },
+      "freshness": {
+        "first_ingested": "2025-08-23T23:48:32.031Z",
+        "last_ingested": "2025-08-23T23:48:32.031Z",
+        "age_hours": 0.00016916666666666667,
+        "ingestion_days": 1
+      }
+    }
+  }
+}

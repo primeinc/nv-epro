@@ -1,0 +1,810 @@
+{
+  "schemaVersion": "1.0",
+  "orchestration": {
+    "id": "orch_20250823T234606.526.526Z_52e442",
+    "command": "node orchestrate.js run auto",
+    "startTime": "2025-08-23T23:46:06.526Z",
+    "endTime": "2025-08-23T23:48:29.056Z",
+    "durationMs": 142530,
+    "tasksTotal": 47,
+    "tasksSucceeded": 47,
+    "tasksFailed": 0,
+    "tasksSkipped": 42
+  },
+  "tasks": [
+    {
+      "index": 0,
+      "dataset": "contracts",
+      "kind": "snapshot",
+      "label": "all",
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": false,
+        "error": null,
+        "runId": "run_20250823T234606.817Z_9fd7d37",
+        "manifestPath": "/home/runner/work/nv-epro/nv-epro/data/nevada-epro/contracts/raw/2025/08/23/run_20250823T234606.817Z_9fd7d37/manifest.json"
+      }
+    },
+    {
+      "index": 1,
+      "dataset": "bids",
+      "kind": "snapshot",
+      "label": "all",
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": false,
+        "error": null,
+        "runId": "run_20250823T234612.375Z_9fd7d37",
+        "manifestPath": "/home/runner/work/nv-epro/nv-epro/data/nevada-epro/vendors/raw/2025/08/23/run_20250823T234612.375Z_9fd7d37/manifest.json"
+      }
+    },
+    {
+      "index": 2,
+      "dataset": "vendors",
+      "kind": "snapshot",
+      "label": "all",
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 3,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 4,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 5,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 6,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 7,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 8,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 9,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 10,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 11,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 12,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 13,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 14,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 15,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 16,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 17,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 18,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 19,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 20,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 21,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 22,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 23,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 24,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 25,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 26,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 27,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 28,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 29,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 30,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 31,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 32,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 33,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 34,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 35,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 36,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 37,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 38,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 39,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 40,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 41,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 42,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 43,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 44,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": false,
+        "error": null,
+        "runId": "run_20250823T234618.676Z_9fd7d37",
+        "manifestPath": "/home/runner/work/nv-epro/nv-epro/data/nevada-epro/purchase_orders/raw/2025/08/23/run_20250823T234618.676Z_9fd7d37/manifest.json"
+      }
+    },
+    {
+      "index": 45,
+      "dataset": "purchase_orders",
+      "kind": "window",
+      "label": "01312018_to_06302023",
+      "startDate": "01/31/2018",
+      "endDate": "06/30/2023",
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": false,
+        "error": null,
+        "runId": "run_20250823T234633.236Z_9fd7d37",
+        "manifestPath": "/home/runner/work/nv-epro/nv-epro/data/nevada-epro/purchase_orders/raw/2025/08/23/run_20250823T234633.236Z_9fd7d37/manifest.json"
+      }
+    },
+    {
+      "index": 46,
+      "dataset": "purchase_orders",
+      "kind": "window",
+      "label": "07012023_to_09282025",
+      "startDate": "07/01/2023",
+      "endDate": "09/28/2025",
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": false,
+        "error": null,
+        "runId": "run_20250823T234606.835Z_9fd7d37",
+        "manifestPath": "/home/runner/work/nv-epro/nv-epro/data/nevada-epro/bids/raw/2025/08/23/run_20250823T234606.835Z_9fd7d37/manifest.json"
+      }
+    }
+  ],
+  "validation": {
+    "timestamp": "2025-08-23T23:48:29.010Z",
+    "summary": {
+      "totalTested": 15,
+      "totalPassed": 15,
+      "totalFailed": 0,
+      "successRate": "100.00%",
+      "duration": "33.5s"
+    },
+    "datasets": [
+      {
+        "dataset": "purchase_orders",
+        "passed": 3,
+        "failed": 0,
+        "samples": 3
+      },
+      {
+        "dataset": "contracts",
+        "passed": 3,
+        "failed": 0,
+        "samples": 3
+      },
+      {
+        "dataset": "bids",
+        "passed": 6,
+        "failed": 0,
+        "samples": 6
+      },
+      {
+        "dataset": "vendors",
+        "passed": 3,
+        "failed": 0,
+        "samples": 3
+      }
+    ]
+  },
+  "environment": {
+    "dataRoot": "/home/runner/work/nv-epro/nv-epro/data",
+    "platform": "linux",
+    "nodeVersion": "v22.18.0",
+    "cwd": "/home/runner/work/nv-epro/nv-epro"
+  }
+}
