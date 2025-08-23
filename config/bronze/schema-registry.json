@@ -108,9 +108,9 @@
     "purchase_orders": {
       "v0.1.0": {
         "schema_version": "v0.1.0",
-        "sql_file": "transforms/silver/purchase_orders_v0.1.0.sql",
+        "sql_file": "transforms/silver/purchase_orders_v0.5.0.sql",
         "primary_key": "po_id",
-        "partition_column": "date_sent"
+        "partition_column": "sent_date"
       }
     },
     

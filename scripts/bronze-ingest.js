@@ -107,8 +107,8 @@ async function ingestAllDatasets() {
           continue;
         }
         
-        // Handle pattern-based files (like purchase orders)
-        if (dataset.pattern) {
+        // Skip individual processing for purchase_orders - handle at dataset level
+        if (dataset.pattern && dataset.name !== 'purchase_orders') {
           const files = await fs.readdir(filesDir);
         const matchingFiles = files.filter(f => 
           f.match(new RegExp(dataset.pattern.replace('*', '.*')))
@@ -144,7 +144,7 @@ async function ingestAllDatasets() {
             console.log(`   Size: ${(result.source_file_bytes / 1024 / 1024).toFixed(2)} MB`);
           }
         }
-      } else {
+      } else if (dataset.name !== 'purchase_orders') {
         // Handle single file datasets
         const csvPath = path.join(filesDir, dataset.file);
         
@@ -181,6 +181,43 @@ async function ingestAllDatasets() {
         }
       }
       } // End of run loop
+      
+      // Special handling for purchase_orders - consolidate ALL files at once
+      if (dataset.name === 'purchase_orders') {
+        console.log(`   Consolidating all purchase_orders files...`);
+        
+        try {
+          // Pass 'auto' to trigger full consolidation
+          const result = await ingestToBronze('auto', dataset.name, {
+            bronzeBasePath,
+            runId: `${runId}_consolidated`,
+            schemaVersion: 'v0.1.0'
+          });
+          
+          results.push({
+            dataset: dataset.name,
+            file: 'all_consolidated',
+            ...result
+          });
+          
+          if (result.skipped) {
+            console.log(`   Status: Skipped (already ingested)`);
+            console.log(`   Hash: ${result.source_file_hash?.substring(0, 8)}...`);
+          } else {
+            console.log(`   Status: Success`);
+            console.log(`   Rows: ${result.row_count}`);
+            console.log(`   Size: ${(result.source_file_bytes / 1024 / 1024).toFixed(2)} MB`);
+          }
+        } catch (error) {
+          console.error(`   ❌ Consolidation failed: ${error.message}`);
+          results.push({
+            dataset: dataset.name,
+            file: 'all_consolidated',
+            success: false,
+            error: error.message
+          });
+        }
+      }
       
     } catch (error) {
       console.error(`❌ Failed to process ${dataset.name}: ${error.message}`);

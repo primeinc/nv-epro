@@ -178,7 +178,7 @@ function runTask(t, attempt=0) {
         args.push(t.label);
       }
     } else if (t.kind === 'window') {
-      // POs need date arguments in format: month day year
+      // POs need date arguments in format: month day year OR MM/DD/YYYY MM/DD/YYYY for ranges
       const [sm, sd, sy] = t.start.split('/').map(s => parseInt(s));
       const [em, ed, ey] = t.end.split('/').map(s => parseInt(s));
       
@@ -199,9 +199,8 @@ function runTask(t, attempt=0) {
         // Single day window
         args.push(monthName, String(sd), String(sy));
       } else {
-        // Custom range - not supported by CLI, would need to pass raw dates
-        console.error(`Warning: Non-standard window ${t.start} to ${t.end} - using month ${monthName} ${sy}`);
-        args.push(monthName, String(sy));
+        // Custom range - pass as MM/DD/YYYY MM/DD/YYYY format with label
+        args.push(t.start, t.end, t.label);
       }
     }
     // Capture output to extract run ID

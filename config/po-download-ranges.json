@@ -1,0 +1,45 @@
+{
+  "description": "Date ranges for bulk PO downloads from Nevada ePro",
+  "notes": [
+    "Nevada ePro has a 50,000 record CSV export limit",
+    "These ranges are designed to stay under that limit",
+    "Ranges may overlap to ensure no POs are missed"
+  ],
+  "update_strategy": "all",
+  "update_strategy_options": {
+    "all": "Download all ranges to ensure complete data coverage",
+    "last": "Download only the last range for recent updates",
+    "incremental": "Download only ranges that haven't been successfully downloaded today"
+  },
+  "ranges": [
+    {
+      "id": "01312018_to_06302023",
+      "start_date": "01/31/2018",
+      "end_date": "06/30/2023",
+      "description": "Historical data from system start through mid-2023",
+      "expected_count": "~49,500"
+    },
+    {
+      "id": "07012023_to_08312025", 
+      "start_date": "07/01/2023",
+      "end_date": "08/31/2025",
+      "description": "Recent data from mid-2023 through future dates",
+      "expected_count": "~47,500"
+    }
+  ],
+  "future_ranges": [
+    {
+      "comment": "Add new ranges here as data grows",
+      "example": {
+        "id": "future_1",
+        "start_date": "09/01/2025",
+        "end_date": "12/31/2026",
+        "description": "Future range when needed"
+      }
+    }
+  ],
+  "usage": {
+    "download_all": "pnpm run po:bulk",
+    "download_specific": "pnpm run po START_DATE END_DATE"
+  }
+}

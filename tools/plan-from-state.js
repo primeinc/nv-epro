@@ -27,7 +27,7 @@ const WINDOW_DATASET = 'purchase_orders';
 
 const SNAPSHOT_DAYS = parseInt(process.env.PLAN_SNAPSHOT_DAYS || '14', 10);
 const WINDOW_DAYS = parseInt(process.env.PLAN_WINDOW_DAYS || '14', 10);
-const BACKFILL_START = process.env.PO_BACKFILL_START || '2018-01-31';  // ISO
+const BACKFILL_START = process.env.PO_BACKFILL_START || '2018-01-01';  // ISO
 
 function ymd(d) { return d.toISOString().slice(0,10); }
 function toMMDDYYYY(d) {
@@ -140,34 +140,96 @@ async function planPOWindows(opts) {
   // Otherwise just do current month updates
   if (!opts.backfill) {
     if (covered.size === 0) {
-      // No PO data exists - do full backfill from BACKFILL_START to today
-      const start = new Date(BACKFILL_START + 'T00:00:00Z');
-      let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
-      while (cursor <= today) {
-        const monthStart = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1));
-        const monthEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth()+1, 0));
-        tasks.push({
-          kind: 'window',
-          dataset: 'purchase_orders',
-          start: toMMDDYYYY(monthStart),
-          end: toMMDDYYYY(monthEnd),
-          label: ymd(monthStart).slice(0,7)
-        });
-        cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth()+1, 1));
+      // No PO data exists - use bulk download ranges from config
+      const bulkRangesPath = path.join(process.cwd(), 'config', 'po-download-ranges.json');
+      if (fs.existsSync(bulkRangesPath)) {
+        const config = JSON.parse(fs.readFileSync(bulkRangesPath, 'utf8'));
+        for (const range of config.ranges) {
+          tasks.push({
+            kind: 'window',
+            dataset: 'purchase_orders',
+            start: range.start_date,
+            end: range.end_date,
+            label: range.id
+          });
+        }
+      } else {
+        // Fallback to yearly windows if no bulk config exists
+        const start = new Date(BACKFILL_START + 'T00:00:00Z');
+        let year = start.getUTCFullYear();
+        const currentYear = today.getUTCFullYear();
+        
+        while (year <= currentYear) {
+          const yearStart = new Date(Date.UTC(year, 0, 1));
+          let yearEnd;
+          
+          if (year === currentYear) {
+            // For current year, end at today
+            yearEnd = today;
+          } else {
+            // For past years, end at Dec 31
+            yearEnd = new Date(Date.UTC(year, 11, 31));
+          }
+          
+          // Start from beginning of year, no restrictions
+          const actualStart = yearStart;
+          
+          tasks.push({
+            kind: 'window',
+            dataset: 'purchase_orders',
+            start: toMMDDYYYY(actualStart),
+            end: toMMDDYYYY(yearEnd),
+            label: `year_${year}`
+          });
+          
+          year++;
+        }
       }
     } else {
-      // PO data exists - just ensure current month is covered
-      const thisMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
-      const thisMonthKey = ymd(thisMonth).slice(0,7);
-      if (!covered.has(thisMonthKey)) {
-        const lastOfMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth()+1, 0));
-        tasks.push({
-          kind: 'window',
-          dataset: 'purchase_orders',
-          start: toMMDDYYYY(thisMonth),
-          end: toMMDDYYYY(lastOfMonth),
-          label: thisMonthKey
-        });
+      // PO data exists - use configured update strategy
+      const bulkRangesPath = path.join(process.cwd(), 'config', 'po-download-ranges.json');
+      if (fs.existsSync(bulkRangesPath)) {
+        const config = JSON.parse(fs.readFileSync(bulkRangesPath, 'utf8'));
+        if (config.ranges && config.ranges.length > 0) {
+          const strategy = config.update_strategy || 'last';
+          
+          if (strategy === 'all') {
+            // Download all ranges
+            for (const range of config.ranges) {
+              tasks.push({
+                kind: 'window',
+                dataset: 'purchase_orders',
+                start: range.start_date,
+                end: range.end_date,
+                label: range.id
+              });
+            }
+          } else if (strategy === 'incremental') {
+            // Download only ranges not done today (default behavior, will be filtered by orchestrator)
+            for (const range of config.ranges) {
+              tasks.push({
+                kind: 'window',
+                dataset: 'purchase_orders',
+                start: range.start_date,
+                end: range.end_date,
+                label: range.id
+              });
+            }
+          } else {
+            // Default to 'last' - just the most recent range
+            const lastRange = config.ranges[config.ranges.length - 1];
+            tasks.push({
+              kind: 'window',
+              dataset: 'purchase_orders',
+              start: lastRange.start_date,
+              end: lastRange.end_date,
+              label: lastRange.id
+            });
+          }
+        }
+      } else {
+        // No config file - fail
+        throw new Error('Missing config/po-download-ranges.json - cannot determine PO download ranges');
       }
     }
   } else {

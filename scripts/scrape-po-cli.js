@@ -66,12 +66,7 @@ function validateDate(dateStr, label) {
   const [month, day, year] = dateStr.split('/').map(Number);
   const date = new Date(year, month - 1, day);
   
-  // Earliest available date is January 31, 2018
-  const earliestDate = new Date(2018, 0, 31); // January 31, 2018
-  
-  if (date < earliestDate) {
-    throw new Error(`Invalid date: ${label}. Nevada ePro data only available from January 31, 2018 onwards.`);
-  }
+  // No minimum date restriction - the site will handle it
   
   // Allow reasonable future dates (up to 1 year ahead for flexibility)
   const today = new Date();
@@ -102,10 +97,10 @@ function parseArgs(args) {
     };
   }
   
-  // Check for date range format: MM/DD/YYYY MM/DD/YYYY
-  if (args.length === 2) {
+  // Check for date range format: MM/DD/YYYY MM/DD/YYYY [label]
+  if (args.length === 2 || args.length === 3) {
     const datePattern = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
-    if (args.every(arg => datePattern.test(arg))) {
+    if (args.slice(0, 2).every(arg => datePattern.test(arg))) {
       const startDate = args[0];
       const endDate = args[1];
       
@@ -113,10 +108,16 @@ function parseArgs(args) {
       validateDate(startDate, startDate);
       validateDate(endDate, endDate);
       
-      // Create label for file naming
-      const startLabel = startDate.replace(/\//g, '');
-      const endLabel = endDate.replace(/\//g, '');
-      const label = `${startLabel}_to_${endLabel}`;
+      // Use provided label or create one from dates
+      let label;
+      if (args.length === 3) {
+        label = args[2]; // Use provided label
+      } else {
+        // Create label for file naming
+        const startLabel = startDate.replace(/\//g, '');
+        const endLabel = endDate.replace(/\//g, '');
+        label = `${startLabel}_to_${endLabel}`;
+      }
       
       return {
         type: 'date',
