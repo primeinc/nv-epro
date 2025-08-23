@@ -95,36 +95,103 @@ async function combineAndSortCSV(file1, file2, outputFile) {
   console.log(`✅ Sorted data written to: ${outputFile}`);
 }
 
+async function combineMultipleCSVFiles(files, outputFile) {
+  console.log(`\n📋 Combining ${files.length} CSV files...`);
+  
+  let header = null;
+  const allData = [];
+  
+  for (const file of files) {
+    console.log(`   Reading: ${file}`);
+    const content = fs.readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+    
+    // Get header from first file
+    if (!header && lines.length > 0) {
+      header = lines[0];
+    }
+    
+    // Add data (skip header)
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim()) {
+        allData.push(lines[i]);
+      }
+    }
+  }
+  
+  // Write combined file
+  const combinedContent = header + '\n' + allData.join('\n');
+  const tempFile = 'data/temp_combined.csv';
+  fs.writeFileSync(tempFile, combinedContent);
+  
+  console.log(`   Combined ${allData.length} data rows`);
+  
+  // Sort the combined file
+  console.log(`\n📊 Sorting combined data...`);
+  await runCommand('node', [path.join(__dirname, '..', 'tools', 'sort-csv-by-date.js'), tempFile, outputFile]);
+  
+  // Clean up temp file
+  fs.unlinkSync(tempFile);
+  
+  console.log(`✅ Sorted data written to: ${outputFile}`);
+}
+
 async function main() {
   try {
-    // Step 1: Download first date range (01/31/2018 to 06/30/2023)
-    console.log('\n📥 Step 1: Downloading first date range (01/31/2018 to 06/30/2023)...');
-    await runCommand('pnpm', ['run', 'po', '01/31/2018', '06/30/2023']);
+    // Load PO download ranges from config
+    const configPath = path.join(process.cwd(), 'config', 'po-download-ranges.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     
-    // Step 2: Download second date range (07/01/2023 to 08/31/2025)
-    console.log('\n📥 Step 2: Downloading second date range (07/01/2023 to 08/31/2025)...');
-    await runCommand('pnpm', ['run', 'po', '07/01/2023', '08/31/2025']);
+    if (!config.ranges || config.ranges.length === 0) {
+      throw new Error('No ranges defined in config/po-download-ranges.json');
+    }
     
-    // Step 3: Find the latest downloaded files
-    console.log('\n🔍 Step 3: Finding latest downloaded files...');
+    const downloadedFiles = [];
     
-    const file1Pattern = 'data/nevada-epro/purchase_orders/raw/**/po_01312018_to_06302023.csv';
-    const file2Pattern = 'data/nevada-epro/purchase_orders/raw/**/po_07012023_to_08312025.csv';
+    // Download each range from config
+    for (let i = 0; i < config.ranges.length; i++) {
+      const range = config.ranges[i];
+      console.log(`\n📥 Step ${i + 1}: Downloading range ${range.id} (${range.start_date} to ${range.end_date})...`);
+      await runCommand('pnpm', ['run', 'po', range.start_date, range.end_date]);
+      
+      // Build pattern for this range's file
+      const filePattern = `data/nevada-epro/purchase_orders/raw/**/po_${range.id}.csv`;
+      downloadedFiles.push({
+        range: range,
+        pattern: filePattern
+      });
+    }
     
-    const file1 = await findLatestFile(file1Pattern);
-    const file2 = await findLatestFile(file2Pattern);
+    // Find the latest downloaded files
+    console.log(`\n🔍 Step ${config.ranges.length + 1}: Finding latest downloaded files...`);
     
-    console.log(`   Found file 1: ${file1}`);
-    console.log(`   Found file 2: ${file2}`);
+    const filesToCombine = [];
+    for (const { range, pattern } of downloadedFiles) {
     
-    // Step 4: Combine and sort the files
+      const file = await findLatestFile(pattern);
+      console.log(`   Found ${range.id}: ${file}`);
+      filesToCombine.push(file);
+    }
+    
+    if (filesToCombine.length === 0) {
+      throw new Error('No files found to combine');
+    }
+    
+    // Combine and sort the files
+    console.log(`\n📋 Step ${config.ranges.length + 2}: Combining and sorting files...`);
     const outputDir = 'config/bronze/validated';
     const outputFile = path.join(outputDir, 'bronze_complete_with_duplicates.csv');
     
     // Ensure output directory exists
     fs.mkdirSync(outputDir, { recursive: true });
     
-    await combineAndSortCSV(file1, file2, outputFile);
+    if (filesToCombine.length === 2) {
+      // Use existing function for 2 files
+      await combineAndSortCSV(filesToCombine[0], filesToCombine[1], outputFile);
+    } else {
+      // Handle multiple files
+      await combineMultipleCSVFiles(filesToCombine, outputFile);
+    }
     
     // Step 5: Generate summary
     const finalContent = fs.readFileSync(outputFile, 'utf-8');
@@ -136,6 +203,10 @@ async function main() {
     console.log(`📊 Total records: ${totalRows.toLocaleString()}`);
     console.log('\n✨ This file contains the complete dataset with all legitimate duplicates');
     console.log('   and can be used as the reference for bronze layer validation.');
+    
+    // OPTIONAL: Delete the large file after processing if not needed
+    // Uncomment the next line to auto-delete after legitimate duplicates are extracted
+    // fs.unlinkSync(outputFile);
     
   } catch (error) {
     console.error('\n❌ Error:', error.message);

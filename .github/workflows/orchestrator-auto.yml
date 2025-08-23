@@ -27,6 +27,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install Playwright
         run: pnpm exec playwright install --with-deps chromium
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
       - name: Checkout existing data
         run: |
           git fetch origin data:data 2>/dev/null || true
@@ -34,7 +38,29 @@ jobs:
             git checkout data -- data/ 2>/dev/null || true
             git checkout dev
           fi
-      - name: Run orchestrator
+      - name: Check and update PO ranges
+        run: |
+          # Run monitor to check if updates are needed
+          node scripts/monitor-po-ranges.js --update
+          
+          # Check if any configs were modified
+          if git diff --quiet config/; then
+            echo "No config updates needed"
+          else
+            echo "Config files were updated:"
+            git diff --name-only config/
+            
+            # Commit all config changes
+            git add config/
+            git commit -m "🤖 Auto-update pipeline configurations
+            
+            $(git diff --cached --name-only config/ | sed 's/^/  - /')
+            
+            🤖 Generated with GitHub Actions
+            Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            git push origin dev
+          fi
+      - name: Run full pipeline
         env:
           DATA_ROOT: ${{ github.workspace }}/data
           ORCH_CONCURRENCY: 2
@@ -42,7 +68,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          node orchestrate.js run auto
+          pnpm run pipeline
       - name: Upload data artifact
         if: success()
         uses: actions/upload-artifact@v4
@@ -83,9 +109,10 @@ jobs:
           if git diff --staged --quiet; then
             echo "No data changes to commit"
           else
-            git commit -m "🤖 Auto-scrape $(date -u '+%Y-%m-%d %H:%M UTC')
+            git commit -m "🤖 Auto-pipeline $(date -u '+%Y-%m-%d %H:%M UTC')
 
-            Orchestration ID: $(cat data/orchestrations/*/*/manifest.json | jq -r '.orchestration.id' | tail -1)
+            Pipeline: Scrape → Bronze → Silver
+            Orchestration ID: $(cat data/orchestrations/*/*/manifest.json 2>/dev/null | jq -r '.orchestration.id' 2>/dev/null | tail -1 || echo "N/A")
             
             🤖 Generated with GitHub Actions
             Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"

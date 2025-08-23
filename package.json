@@ -22,7 +22,7 @@
     "bronze:validate": "node scripts/bronze-validate.js --all",
     "silver:ingest": "node scripts/silver-ingest.js",
     "pipeline:post-scrape": "pnpm run pipeline:guard && pnpm run bronze:ingest && pnpm run bronze:validate && pnpm run silver:ingest",
-    "pipeline": "pnpm run auto && pnpm run pipeline:post-scrape"
+    "pipeline": "pnpm run monitor:po-ranges --update && pnpm run auto && pnpm run pipeline:post-scrape"
   },
   "keywords": [],
   "author": "",

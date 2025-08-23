@@ -17,6 +17,7 @@ const EXPORT_LIMIT = 50000;
 const TARGET_THRESHOLD = 49500;   // Target to maximize each range
 const WARNING_THRESHOLD = 49000;  // Warn when getting close to target
 const EXTENSION_DAYS = 7;         // Extend by a week at a time
+const CAPACITY_SAFETY_FACTOR = 0.9; // Only use 90% of estimated capacity
 
 /**
  * Get actual PO count from Nevada ePro website
@@ -76,9 +77,9 @@ function formatDate(date) {
 }
 
 /**
- * Calculate growth rate from recent data
+ * Calculate growth rate from multiple data points
  */
-async function calculateGrowthRate() {
+async function calculateGrowthRate(rangeData = []) {
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -86,23 +87,74 @@ async function calculateGrowthRate() {
   const startDate = formatDate(thirtyDaysAgo);
   const endDate = formatDate(today);
   
-  console.log(`   📊 Calculating growth rate...`);
-  console.log(`      Period: ${startDate} to ${endDate} (30 days)`);
+  console.log(`\n   📊 Calculating growth rate from multiple data points...`);
   
-  const { count } = await getLivePOCount(startDate, endDate);
+  const dataPoints = [];
+  let pointNumber = 1;
   
-  if (count > 0) {
-    const dailyRate = count / 30;
-    const monthlyRate = dailyRate * 30;
-    console.log(`      POs in period: ${count}`);
-    console.log(`      Daily rate: ${dailyRate.toFixed(1)} POs/day`);
-    console.log(`      Monthly rate: ${monthlyRate.toFixed(0)} POs/month`);
-    return { daily: dailyRate, monthly: monthlyRate, based_on: count };
+  // Process historical ranges first (in chronological order)
+  for (let i = 0; i < rangeData.length; i++) {
+    const range = rangeData[i];
+    if (range.count > 0) {
+      const start = parseDate(range.start_date);
+      const end = parseDate(range.end_date);
+      const days = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+      const daily = range.count / days;
+      
+      const isHistorical = i < rangeData.length - 1;
+      const label = isHistorical ? '(historical)' : '(current)';
+      
+      console.log(`      Data point ${pointNumber}: Range ${range.id} ${label}`);
+      console.log(`        → ${range.count.toLocaleString()} POs over ${days} days = ${daily.toFixed(1)} POs/day`);
+      
+      // Weight: historical=1x, current=2x, recent 30-day=3x
+      const weight = isHistorical ? 1 : 2;
+      dataPoints.push({ daily, weight, source: `range_${range.id}` });
+      pointNumber++;
+    }
+  }
+  
+  // Get recent 30-day growth (most valuable)
+  console.log(`      Data point ${pointNumber}: Recent 30 days (${startDate} to ${endDate})`);
+  const { count: recentCount } = await getLivePOCount(startDate, endDate);
+  
+  if (recentCount > 0) {
+    const recentDaily = recentCount / 30;
+    console.log(`        → ${recentCount.toLocaleString()} POs = ${recentDaily.toFixed(1)} POs/day`);
+    
+    // Weight recent 30-day data most heavily
+    dataPoints.push({ daily: recentDaily, weight: 3, source: 'recent_30_days' });
+  }
+  
+  // Calculate weighted average
+  if (dataPoints.length > 0) {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    
+    for (const point of dataPoints) {
+      weightedSum += point.daily * point.weight;
+      totalWeight += point.weight;
+    }
+    
+    const weightedDaily = weightedSum / totalWeight;
+    const weightedMonthly = weightedDaily * 30;
+    
+    console.log(`\n      📈 Weighted growth rate:`);
+    console.log(`         Weights: Historical(1x), Current(2x), Recent 30-day(3x)`);
+    console.log(`         Daily: ${weightedDaily.toFixed(1)} POs/day`);
+    console.log(`         Monthly: ${weightedMonthly.toFixed(0)} POs/month`);
+    
+    return { 
+      daily: weightedDaily, 
+      monthly: weightedMonthly, 
+      based_on: `${dataPoints.length} data points (weighted)`,
+      data_points: dataPoints.length
+    };
   }
   
   // Fallback to historical average
-  console.log(`      ⚠️ Could not get live count, using estimate`);
-  return { daily: 60, monthly: 1800, based_on: 'estimate' };
+  console.log(`      ⚠️ Could not calculate from data, using estimate`);
+  return { daily: 60, monthly: 1800, based_on: 'estimate', data_points: 0 };
 }
 
 /**
@@ -157,8 +209,9 @@ function suggestNextRange(lastRange, growthRate, targetCount = 49000) {
   const newStart = new Date(lastEnd);
   newStart.setDate(newStart.getDate() + 1);
   
-  // Calculate how many days for target count
-  const daysNeeded = Math.floor(targetCount / growthRate.daily);
+  // Calculate how many days for target count (with safety factor)
+  const adjustedTarget = Math.floor(targetCount * CAPACITY_SAFETY_FACTOR);
+  const daysNeeded = Math.floor(adjustedTarget / growthRate.daily);
   
   const newEnd = new Date(newStart);
   newEnd.setDate(newEnd.getDate() + daysNeeded);
@@ -192,6 +245,7 @@ async function monitorRanges(autoUpdate = false) {
   let hasWarnings = false;
   let hasCritical = false;
   let suggestedChanges = [];
+  const rangeData = [];  // Collect data for growth calculation
   
   for (let i = 0; i < config.ranges.length; i++) {
     const range = config.ranges[i];
@@ -200,6 +254,14 @@ async function monitorRanges(autoUpdate = false) {
     
     // Check actual count from live website
     const { count, source } = await getLivePOCount(range.start_date, range.end_date);
+    
+    // Store for growth calculation
+    rangeData.push({
+      id: range.id,
+      start_date: range.start_date,
+      end_date: range.end_date,
+      count: count
+    });
     
     if (source === 'live_website') {
       console.log(`   📊 Live count: ${count.toLocaleString()} POs`);
@@ -231,8 +293,8 @@ async function monitorRanges(autoUpdate = false) {
       
       // For last range, check if we can extend or need new range
       if (isLastRange && count > 0) {
-        const growthRate = await calculateGrowthRate();
-        console.log(`   📈 Recent growth: ~${Math.round(growthRate.monthly).toLocaleString()} POs/month`);
+        const growthRate = await calculateGrowthRate(rangeData);
+        console.log(`   📈 Calculated growth: ~${Math.round(growthRate.monthly).toLocaleString()} POs/month`);
         
         // Determine what action to take
         if (count < TARGET_THRESHOLD) {
@@ -252,9 +314,12 @@ async function monitorRanges(autoUpdate = false) {
           
           if (daysUntilEnd <= 7) {
             // Range ending soon but not full - extend it!
-            const extensionDays = Math.max(EXTENSION_DAYS, daysOfRoom);
+            // Apply safety factor to capacity-based extension
+            const safeDaysOfRoom = Math.floor(daysOfRoom * CAPACITY_SAFETY_FACTOR);
+            const extensionDays = Math.max(EXTENSION_DAYS, safeDaysOfRoom);
             console.log(`\n   ⚡ ACTION NEEDED: Extend this range`);
-            console.log(`      Extension logic: max(${EXTENSION_DAYS} days minimum, ${daysOfRoom} days capacity) = ${extensionDays} days`);
+            console.log(`      Extension logic: max(${EXTENSION_DAYS} days minimum, ${safeDaysOfRoom} days @ 90% safety) = ${extensionDays} days`);
+            console.log(`      (Full capacity: ${daysOfRoom} days, using 90% = ${safeDaysOfRoom} days)`);
             
             const newEndDate = new Date(endDate);
             newEndDate.setDate(newEndDate.getDate() + extensionDays);
@@ -326,7 +391,17 @@ async function monitorRanges(autoUpdate = false) {
         const rangeToUpdate = config.ranges.find(r => r.id === change.range_id);
         if (rangeToUpdate) {
           console.log(`   ✏️  Extending ${change.range_id} to ${change.new_end}`);
+          const oldId = rangeToUpdate.id;
+          
+          // Update the end date
           rangeToUpdate.end_date = change.new_end;
+          
+          // Update the ID to match new end date
+          const startPart = rangeToUpdate.start_date.replace(/\//g, '');
+          const endPart = change.new_end.replace(/\//g, '');
+          rangeToUpdate.id = `${startPart}_to_${endPart}`;
+          
+          console.log(`   📝 Updated ID: ${oldId} → ${rangeToUpdate.id}`);
         }
       } else if (change.type === 'add') {
         console.log(`   ➕ Adding new range: ${change.new_range.id}`);

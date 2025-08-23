@@ -82,3 +82,12 @@ if (previousCount !== null) {
   const sign = difference >= 0 ? '+' : '';
   console.log(`\nComparison: Previous config had ${previousCount} POs, new has ${configRows.length} (${sign}${difference})`);
 }
+
+// Delete the large bronze_complete file since we've extracted what we need
+const largeFile = 'config/bronze/validated/bronze_complete_with_duplicates.csv';
+try {
+  fs.unlinkSync(largeFile);
+  console.log(`\n🗑️  Deleted large reference file (17MB) - keeping only the legitimate duplicates config`);
+} catch (e) {
+  // File might not exist or already deleted
+}
