@@ -55,6 +55,17 @@ console.log(`Total rows in bronze complete: ${rows.length}`);
 console.log(`Unique PO#s: ${Object.keys(poCounts).length}`);
 console.log(`PO#s with duplicates: ${configRows.length}`);
 
+// Check for existing config before overwriting
+const configPath = 'config/bronze/validated/bronze_legitimate_duplicates.csv';
+let previousCount = null;
+try {
+  const existingConfig = fs.readFileSync(configPath, 'utf-8');
+  const existingRows = csv.parse(existingConfig, { columns: true, bom: true, skip_empty_lines: true });
+  previousCount = existingRows.length;
+} catch (e) {
+  // No existing config - that's fine
+}
+
 // Generate CSV
 const csvContent = stringify.stringify(configRows, {
   header: true,
@@ -62,16 +73,12 @@ const csvContent = stringify.stringify(configRows, {
 });
 
 // Save to config
-const configPath = 'config/bronze/validated/bronze_legitimate_duplicates.csv';
 fs.writeFileSync(configPath, csvContent);
 console.log(`\nGenerated config with ${configRows.length} duplicate POs saved to: ${configPath}`);
 
-// Show comparison with existing config
-try {
-  const existingConfig = fs.readFileSync('config/nv-epro-actual-duplicates.csv', 'utf-8');
-  const existingRows = csv.parse(existingConfig, { columns: true, bom: true, skip_empty_lines: true });
-  console.log(`\nExisting config has ${existingRows.length} POs`);
-  console.log(`New config has ${configRows.length} POs (${configRows.length - existingRows.length} more)`);
-} catch (e) {
-  console.log('\nCould not compare with existing config');
+// Show comparison if we had a previous config
+if (previousCount !== null) {
+  const difference = configRows.length - previousCount;
+  const sign = difference >= 0 ? '+' : '';
+  console.log(`\nComparison: Previous config had ${previousCount} POs, new has ${configRows.length} (${sign}${difference})`);
 }

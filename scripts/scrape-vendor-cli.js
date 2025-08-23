@@ -7,9 +7,9 @@ const path = require('path');
 const THROTTLE_MS = parseInt(process.env.THROTTLE_MS || '2000');
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '30000');
 const DOWNLOAD_TIMEOUT_MS = parseInt(process.env.DOWNLOAD_TIMEOUT_MS || '300000'); // 5 minutes
-const { getRunContext } = require('./lib/run-context');
-const { finalizeRun } = require('./lib/manifest-utils');
-const { captureDiagnostics, setupLogging, parseError } = require('./lib/diagnostics');
+const { getRunContext } = require('../lib/run-context');
+const { finalizeRun } = require('../lib/manifest-utils');
+const { captureDiagnostics, setupLogging, parseError } = require('../lib/diagnostics');
 let RUNTIME = null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -35,3 +35,4 @@ playwright/.cache/
 examples
 logs
 verify-bronze.js
+debug/*

@@ -10,10 +10,10 @@ const CONCURRENCY = parseInt(process.env.ORCH_CONCURRENCY || '2', 10);
 const RETRIES = parseInt(process.env.ORCH_RETRIES || '2', 10);
 
 const DS = {
-  contracts: { script: 'scrape-contract-cli.js', mode: 'snapshot' },
-  bids: { script: 'scrape-bid-cli.js', mode: 'snapshot' },
-  vendors: { script: 'scrape-vendor-cli.js', mode: 'snapshot' },
-  purchase_orders: { script: 'scrape-po-cli.js', mode: 'windowed' }
+  contracts: { script: 'scripts/scrape-contract-cli.js', mode: 'snapshot' },
+  bids: { script: 'scripts/scrape-bid-cli.js', mode: 'snapshot' },
+  vendors: { script: 'scripts/scrape-vendor-cli.js', mode: 'snapshot' },
+  purchase_orders: { script: 'scripts/scrape-po-cli.js', mode: 'windowed' }
 };
 
 // Track active lock files for cleanup on process exit

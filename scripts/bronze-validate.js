@@ -47,7 +47,7 @@ async function runExpectations(conn, dataset, bronzePath, config = {}) {
   ));
   
   // Column null checks
-  const schema = require('../schema-registry.json').schemas[dataset]?.['v0.1.0'];
+  const schema = require('../config/bronze/schema-registry.json').schemas[dataset]?.['v0.1.0'];
   if (schema?.columns) {
     for (const [column, type] of Object.entries(schema.columns)) {
       const nullSql = `

@@ -31,9 +31,9 @@ function getDownloadTimeout(startDate, endDate) {
   // Full year or multi-month: 2 minutes
   return 120000; // 2 minutes for larger windows
 }
-const { getRunContext } = require('./lib/run-context');
-const { finalizeRun } = require('./lib/manifest-utils');
-const { captureDiagnostics, setupLogging, parseError } = require('./lib/diagnostics');
+const { getRunContext } = require('../lib/run-context');
+const { finalizeRun } = require('../lib/manifest-utils');
+const { captureDiagnostics, setupLogging, parseError } = require('../lib/diagnostics');
 let RUNTIME = null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -7,9 +7,9 @@ const path = require('path');
 const THROTTLE_MS = parseInt(process.env.THROTTLE_MS || '2000');
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '30000');
 const DOWNLOAD_TIMEOUT_MS = parseInt(process.env.DOWNLOAD_TIMEOUT_MS || '300000'); // 5 minutes
-const { getRunContext } = require('./lib/run-context');
-const { finalizeRun } = require('./lib/manifest-utils');
-const { captureDiagnostics, setupLogging, parseError } = require('./lib/diagnostics');
+const { getRunContext } = require('../lib/run-context');
+const { finalizeRun } = require('../lib/manifest-utils');
+const { captureDiagnostics, setupLogging, parseError } = require('../lib/diagnostics');
 let RUNTIME = null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -47,24 +47,24 @@ function validateDate(dateStr, label) {
     throw new Error(`Invalid date: ${label}. "${dateStr}" is not a valid date.`);
   }
   
-  // Earliest available date is January 31, 2018 (same as POs)
-  const earliestDate = new Date(2018, 0, 31); // January 31, 2018
+  // Contract dates filter by EXPIRATION DATE (when contract ends)
+  // Earliest contract BEGIN date in system: 01/01/2014
+  // Latest contract END date currently: 01/01/2050
+  // NOTE: Contracts with end date = today are included (earliest end date always >= today)
+  
+  // We'll allow from 2014 since contracts exist that far back
+  const earliestDate = new Date(2014, 0, 1); // January 1, 2014
   
   if (date < earliestDate) {
-    throw new Error(`Invalid date: ${label}. Nevada ePro bid data only available from January 31, 2018 onwards.`);
+    throw new Error(`Invalid date: ${label}. Contract data only available from January 1, 2014 onwards.`);
   }
   
-  // Don't allow future dates
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  if (date > today) {
-    throw new Error(`Invalid date: ${label}. Cannot retrieve data from the future.`);
-  }
+  // No upper bound - contracts can expire far in the future (currently up to 2050)
 }
 
 function parseArgs(args) {
   if (args.length === 0) {
-    // No arguments = export ALL bids (no date filtering)
+    // No arguments = export ALL contracts (no date filtering)
     return {
       startDate: null,
       endDate: null,
@@ -96,7 +96,7 @@ function parseArgs(args) {
     const dayStr = String(dayArg).padStart(2, '0');
     const dateStr = `${monthStr}/${dayStr}/${year}`;
     
-    // Validate date is not before Jan 31, 2018
+    // Note: For contracts, dates filter by EXPIRATION date (when contract ends)
     validateDate(dateStr, `${MONTH_NAMES[month]} ${dayArg}, ${year}`);
     
     return {
@@ -204,7 +204,7 @@ function parseArgs(args) {
   throw new Error(`Invalid number of arguments: ${args.length}`);
 }
 
-async function scrapeBids(startDate, endDate, label) {
+async function scrapeContracts(startDate, endDate, label) {
   // Tracking variables for diagnostics
   let stage = 'initialization';
   let lastSelector = null;
@@ -240,18 +240,18 @@ async function scrapeBids(startDate, endDate, label) {
     
     // Set up logging
     setupLogging(page, RUNTIME);
-    console.log('\nNevada ePro Bid Scraper');
-    console.log('========================');
+    console.log('\nNevada ePro Contract Scraper');
+    console.log('============================');
     if (startDate && endDate) {
       console.log(`Start Date: ${startDate}`);
       console.log(`End Date:   ${endDate}`);
     } else {
-      console.log('Date Range: ALL BIDS (no date filter)');
+      console.log('Date Range: ALL CONTRACTS (no date filter)');
     }
     
     stage = 'navigation';
     console.log('\nNavigating to Nevada ePro...');
-    await page.goto('https://nevadaepro.com/bso/view/search/external/advancedSearchBid.xhtml', {
+    await page.goto('https://nevadaepro.com/bso/view/search/external/advancedSearchContractBlanket.xhtml', {
       waitUntil: 'networkidle',
       timeout: NAV_TIMEOUT_MS
     });
@@ -260,9 +260,9 @@ async function scrapeBids(startDate, endDate, label) {
     if (startDate && endDate) {
       stage = 'date_input';
       console.log('Setting date range...');
-      lastSelector = 'input[id="bidSearchForm:openingDateFrom_input"]';
+      lastSelector = 'input[id="contractBlanketSearchForm:expireFromDate_input"]';
       const fromDateInput = await page.locator(lastSelector);
-      lastSelector = 'input[id="bidSearchForm:openingDateTo_input"]';
+      lastSelector = 'input[id="contractBlanketSearchForm:expireToDate_input"]';
       const toDateInput = await page.locator(lastSelector);
       
       await fromDateInput.clear();
@@ -281,13 +281,28 @@ async function scrapeBids(startDate, endDate, label) {
     await page.locator(lastSelector).first().click();
     
     stage = 'wait_results';
+    lastSelector = '.ui-datatable-tablewrapper, .ui-datatable-empty-message';
+    // Wait for results to load (check for either results table or "No records found")
+    await page.waitForSelector(lastSelector, { timeout: NAV_TIMEOUT_MS });
+    
+    // Check if we have "No records found"
+    const noRecords = await page.$('.ui-datatable-empty-message');
+    if (noRecords) {
+      const text = await noRecords.textContent();
+      if (text && text.includes('No records found')) {
+        console.log('\n⚠️  No contracts found for the specified date range.');
+        console.log('Note: Dates filter by contract EXPIRATION date, not creation date.');
+        return;
+      }
+    }
+    
+    // Wait for the CSV export image to appear
     lastSelector = 'img[src*="csv"]';
-    // Wait for the CSV export image to appear - that's all we need
     await page.waitForSelector(lastSelector, { timeout: NAV_TIMEOUT_MS });
     
     stage = 'csv_export';
     console.log('Clicking CSV export...');
-    const csvImage = await page.$('img[src*="csv"]');
+    const csvImage = await page.$(lastSelector);
 
     if (!csvImage) {
       console.log('⚠️  No CSV export icon found — likely no results to export.');
@@ -304,7 +319,7 @@ async function scrapeBids(startDate, endDate, label) {
     const download = await downloadPromise;
     
     stage = 'save_file';
-    const outputPath = path.join(RUNTIME.OUTPUT_DIR, `bid_${label}.csv`);
+    const outputPath = path.join(RUNTIME.OUTPUT_DIR, `contract_${label}.csv`);
     await download.saveAs(outputPath);
     
     let totalRecords = 0;
@@ -318,7 +333,7 @@ async function scrapeBids(startDate, endDate, label) {
     }
     
     console.log('\n✅ Success!');
-    console.log(`Downloaded ${totalRecords} records to bid_${label}.csv`);
+    console.log(`Downloaded ${totalRecords} records to contract_${label}.csv`);
     
     // Capture final URL for manifest
     const finalUrl = await page.url();
@@ -365,25 +380,25 @@ async function main() {
   
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
-Nevada ePro Bid Scraper CLI
+Nevada ePro Contract Scraper CLI
 
 Usage:
-  pnpm run bid [month] [day] [year]
+  pnpm run contract [month] [day] [year]
   
 Examples:
-  pnpm run bid                 # ALL BIDS (no date filter - ~2600+ records)
-  pnpm run bid aug             # August of current year
-  pnpm run bid 2025            # All of 2025 (up to today if current year)
-  pnpm run bid 25              # All of 2025 (up to today if current year)
-  pnpm run bid 2017            # ERROR: No data before 2018
-  pnpm run bid aug 25          # All of August 2025
-  pnpm run bid aug 21          # All of August 2021
-  pnpm run bid 8 2025          # All of August 2025
-  pnpm run bid aug 20 25       # August 20, 2025 only (single day)
-  pnpm run bid aug 32 25       # ERROR: Invalid day
+  pnpm run contract            # ALL CONTRACTS (no date filter)
+  pnpm run contract aug        # August of current year
+  pnpm run contract 2025       # All of 2025 (up to today if current year)
+  pnpm run contract 25         # All of 2025 (up to today if current year)
+  pnpm run contract 2017       # ERROR: No data before 2018
+  pnpm run contract aug 25     # All of August 2025
+  pnpm run contract aug 21     # All of August 2021
+  pnpm run contract 8 2025     # All of August 2025
+  pnpm run contract aug 20 25  # August 20, 2025 only (single day)
+  pnpm run contract aug 32 25  # ERROR: Invalid day
   
 Format Rules:
-  - No args: ALL BIDS (no date filter)
+  - No args: ALL CONTRACTS (no date filter)
   - 1 arg: year (18-99 or 2018+) OR month for current year
   - 2 args: month + year (whole month)
   - 3 args: month + day + year (single day)
@@ -393,8 +408,8 @@ Notes:
   - Day: 1-31 (validated for month)
   - Year: 18-99 (assumes 2000s) or full year (2018 minimum)
   - Data available from January 31, 2018 onwards
-  - Bid export supports no-date "all records" mode
-  - Use 'pnpm run po' for PO data (requires date range)
+  - Contract export supports no-date "all records" mode
+  - Dates filter by contract EXPIRATION date
 `);
     return;
   }
@@ -402,7 +417,7 @@ Notes:
   const { startDate, endDate, label } = parseArgs(args);
   
   // Initialize run context
-  RUNTIME = getRunContext('bids', label);
+  RUNTIME = getRunContext('contracts', label);
   
   console.log(`\n📁 Run ID: ${RUNTIME.runId}`);
   console.log(`📂 Output: ${RUNTIME.OUTPUT_DIR}`);
@@ -413,7 +428,7 @@ Notes:
   let result = null;
   
   try {
-    result = await scrapeBids(startDate, endDate, label);
+    result = await scrapeContracts(startDate, endDate, label);
   } catch (err) {
     status = 'error';
     errorInfo = {
@@ -433,7 +448,7 @@ Notes:
   
   // Always finalize, even on error
   await finalizeRun(RUNTIME, {
-    dataset: 'bids',
+    dataset: 'contracts',
     label,
     startDate,
     endDate,

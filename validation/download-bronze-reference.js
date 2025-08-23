@@ -87,7 +87,7 @@ async function combineAndSortCSV(file1, file2, outputFile) {
   
   // Sort the combined file
   console.log(`\n📊 Sorting combined data...`);
-  await runCommand('node', ['tools/sort-csv-by-date.js', tempFile, outputFile]);
+  await runCommand('node', [path.join(__dirname, '..', 'tools', 'sort-csv-by-date.js'), tempFile, outputFile]);
   
   // Clean up temp file
   fs.unlinkSync(tempFile);
