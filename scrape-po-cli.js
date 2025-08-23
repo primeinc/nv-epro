@@ -86,9 +86,19 @@ function parseArgs(args) {
     // Default to current month
     const now = new Date();
     return {
+      type: 'date',
       startDate: `${String(now.getMonth() + 1).padStart(2, '0')}/01/${now.getFullYear()}`,
       endDate: `${String(now.getMonth() + 1).padStart(2, '0')}/${getDaysInMonth(now.getMonth() + 1, now.getFullYear())}/${now.getFullYear()}`,
       label: `${MONTH_NAMES[now.getMonth() + 1]}_${now.getFullYear()}`
+    };
+  }
+  
+  // Check if args are PO numbers (format: XXYYY-NVYY-NNNN or XXYYY-NVYY-NNNN:N)
+  const poPattern = /^[A-Z0-9]+-NV\d{2}-\d+(:\d+)?$/i;
+  if (args.every(arg => poPattern.test(arg))) {
+    return {
+      type: 'po',
+      poNumbers: args
     };
   }
 
@@ -120,6 +130,7 @@ function parseArgs(args) {
     validateDate(dateStr, `${MONTH_NAMES[month]} ${dayArg}, ${year}`);
     
     return {
+      type: 'date',
       startDate: dateStr,
       endDate: dateStr,
       label: `${year}-${monthStr}-${dayStr}`
@@ -146,6 +157,7 @@ function parseArgs(args) {
       }
       
       return {
+        type: 'date',
         startDate: `${monthStr}/01/${year}`,
         endDate: `${monthStr}/${lastDay}/${year}`,
         label: `${MONTH_NAMES[month]}_${year}`
@@ -202,6 +214,7 @@ function parseArgs(args) {
       }
       
       return {
+        type: 'date',
         startDate: `01/01/${year}`,
         endDate: endDate,
         label: `year_${year}`
@@ -216,6 +229,7 @@ function parseArgs(args) {
       const monthStr = String(month).padStart(2, '0');
       
       return {
+        type: 'date',
         startDate: `${monthStr}/01/${year}`,
         endDate: `${monthStr}/${lastDay}/${year}`,
         label: `${MONTH_NAMES[month]}_${year}`
@@ -226,6 +240,206 @@ function parseArgs(args) {
   }
   
   throw new Error(`Invalid number of arguments: ${args.length}`);
+}
+
+async function scrapeSinglePO(poNumbers) {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  
+  try {
+    // Navigate once to get the form and session
+    await page.goto('https://nevadaepro.com/bso/view/search/external/advancedSearchPurchaseOrder.xhtml', {
+      waitUntil: 'networkidle',
+      timeout: NAV_TIMEOUT_MS
+    });
+    
+    // Do an initial search to get the session ready
+    console.error(`Searching for PO: ${poNumbers[0]}`);
+    await page.fill('input[id*="poNbr"]', poNumbers[0]);
+    await page.click('button[id*="poSearch"]');
+    await page.waitForSelector('[id*="poResultId"]', { timeout: 10000 });
+    
+    const results = [];
+    
+    // Extract first results
+    let poResults = await page.evaluate(() => {
+      const table = document.querySelector('[id*="poResultId"]');
+      const rows = table ? table.querySelectorAll('tbody > tr') : [];
+      const data = [];
+      
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 9) {
+          // Remove the column title span from each cell's text
+          const getCellText = (cell) => {
+            const clone = cell.cloneNode(true);
+            const titleSpan = clone.querySelector('.ui-column-title');
+            if (titleSpan) titleSpan.remove();
+            return clone.textContent.trim();
+          };
+          
+          // First cell has a link, get text from it
+          const poLink = cells[0].querySelector('a');
+          const poNumber = poLink ? poLink.textContent.trim() : getCellText(cells[0]);
+          
+          data.push({
+            poNumber: poNumber,
+            description: getCellText(cells[2]),
+            vendor: getCellText(cells[3]),
+            organization: getCellText(cells[4]),
+            department: getCellText(cells[5]),
+            buyer: getCellText(cells[6]),
+            status: getCellText(cells[7]),
+            sentDate: getCellText(cells[8]),
+            total: cells[9] ? getCellText(cells[9]) : getCellText(cells[8])
+          });
+        }
+      });
+      
+      // Check for "No records found"
+      if (data.length === 0) {
+        const emptyMessage = document.querySelector('.ui-datatable-empty-message');
+        if (emptyMessage) {
+          return [];
+        }
+      }
+      
+      return data;
+    });
+    
+    results.push({
+      searchedPO: poNumbers[0],
+      found: poResults.length > 0,
+      results: poResults
+    });
+    
+    // Now get the form data for subsequent POST requests
+    const formData = await page.evaluate(() => {
+      const viewState = document.querySelector('input[name="javax.faces.ViewState"]');
+      const csrf = document.querySelector('input[name="_csrf"]');
+      
+      return {
+        viewState: viewState ? viewState.value : null,
+        csrf: csrf ? csrf.value : null
+      };
+    });
+    
+    // For remaining POs, make direct POST requests
+    for (let i = 1; i < poNumbers.length; i++) {
+      const poNumber = poNumbers[i];
+      console.error(`Searching for PO: ${poNumber}`);
+      
+      // Build the form data as shown in the captured request
+      const postData = new URLSearchParams({
+        'javax.faces.partial.ajax': 'true',
+        'javax.faces.source': 'poSearchForm:j_idt411',
+        'javax.faces.partial.execute': '@all',
+        'javax.faces.partial.render': 'advSearchFormFields advSearchResults advancedSearchMainPanelContainer',
+        'poSearchForm:j_idt411': 'poSearchForm:j_idt411',
+        'poSearchForm': 'poSearchForm',
+        '_csrf': formData.csrf,
+        'poSearchForm:poNbr': poNumber,
+        'poSearchForm:alternateId': '',
+        'poSearchForm:desc': '',
+        'poSearchForm:organization': '',
+        'poSearchForm:departmentPrefix': '',
+        'poSearchForm:buyer': '',
+        'poSearchForm:vendorName': '',
+        'poSearchForm:itemDesc': '',
+        'poSearchForm:classId': '',
+        'poSearchForm:classItemId': '',
+        'poSearchForm:poType': '',
+        'poSearchForm:sentDateFrom_input': '',
+        'poSearchForm:sentDateTo_input': '',
+        'poSearchForm:status': '',
+        'javax.faces.ViewState': formData.viewState
+      });
+      
+      // Make the POST request
+      const response = await page.evaluate(async (data) => {
+        const response = await fetch('/bso/view/search/external/advancedSearchPurchaseOrder.xhtml', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Faces-Request': 'partial/ajax'
+          },
+          body: data
+        });
+        return await response.text();
+      }, postData.toString());
+      
+      // Parse the XML response to extract the table HTML from the advSearchResults update
+      // Look for the advSearchResults update section
+      const advSearchMatch = response.match(/<update id="advSearchResults"><!\[CDATA\[([\s\S]*?)\]\]><\/update>/);
+      let tableHtml = '';
+      
+      if (advSearchMatch) {
+        tableHtml = advSearchMatch[1];
+      }
+      
+      if (tableHtml) {
+        await page.setContent(tableHtml);
+        
+        // Extract results
+        poResults = await page.evaluate(() => {
+          const table = document.querySelector('[id*="poResultId"]');
+          const rows = table ? table.querySelectorAll('tbody > tr') : [];
+          const data = [];
+          
+          rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 9) {
+              // Remove the column title span from each cell's text
+              const getCellText = (cell) => {
+                const clone = cell.cloneNode(true);
+                const titleSpan = clone.querySelector('.ui-column-title');
+                if (titleSpan) titleSpan.remove();
+                return clone.textContent.trim();
+              };
+              
+              // First cell has a link, get text from it
+              const poLink = cells[0].querySelector('a');
+              const poNumber = poLink ? poLink.textContent.trim() : getCellText(cells[0]);
+              
+              data.push({
+                poNumber: poNumber,
+                description: getCellText(cells[2]),
+                vendor: getCellText(cells[3]),
+                organization: getCellText(cells[4]),
+                department: getCellText(cells[5]),
+                buyer: getCellText(cells[6]),
+                status: getCellText(cells[7]),
+                sentDate: getCellText(cells[8]),
+                total: cells[9] ? getCellText(cells[9]) : getCellText(cells[8])
+              });
+            }
+          });
+          
+          // Check for "No records found"
+          if (data.length === 0) {
+            const emptyMessage = document.querySelector('.ui-datatable-empty-message');
+            if (emptyMessage) {
+              return [];
+            }
+          }
+          
+          return data;
+        });
+        
+        results.push({
+          searchedPO: poNumber,
+          found: poResults.length > 0,
+          results: poResults
+        });
+      }
+    }
+    
+    return results;
+    
+  } finally {
+    await browser.close();
+  }
 }
 
 async function scrapePOs(startDate, endDate, label) {
@@ -413,7 +627,18 @@ Notes:
     return;
   }
   
-  const { startDate, endDate, label } = parseArgs(args);
+  const parsed = parseArgs(args);
+  
+  // Check if it's PO search mode
+  if (parsed.type === 'po') {
+    // PO search mode - return JSON results
+    const results = await scrapeSinglePO(parsed.poNumbers);
+    console.log(JSON.stringify(results, null, 2));
+    return;
+  }
+  
+  // Date search mode - original behavior
+  const { startDate, endDate, label } = parsed;
   
   // Initialize run context
   RUNTIME = getRunContext('purchase_orders', label);
