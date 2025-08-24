@@ -32,3 +32,14 @@ export function monthKey(iso: string): string {
   const d = dayjs(iso);
   return d.format('YYYY-MM');
 }
+
+export function formatUSDCompact(n: number): string {
+  if (n >= 1e9) {
+    return `$${(n / 1e9).toFixed(2)}B`;
+  } else if (n >= 1e6) {
+    return `$${(n / 1e6).toFixed(2)}M`;
+  } else if (n >= 1e3) {
+    return `$${(n / 1e3).toFixed(0)}K`;
+  }
+  return formatUSD(n);
+}

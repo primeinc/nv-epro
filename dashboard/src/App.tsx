@@ -3,6 +3,8 @@ import { useEffect } from 'react'
 import { useStore } from './lib/state'
 import { DuckDBDataSource } from './lib/duckdbDataSource'
 import TopNav from './components/Layout/TopNav'
+import TimelineControl from './components/Timeline/TimelineControl'
+import './components/Timeline/timeline.css'
 
 export default function App() {
   const setPOs = useStore(s => s.setPOs)
@@ -27,6 +29,7 @@ export default function App() {
             <NavLink to="/vendors" className={({isActive}) => isActive ? 'active' : ''}>Vendors</NavLink>
             <NavLink to="/purchase-orders" className={({isActive}) => isActive ? 'active' : ''}>Purchase Orders</NavLink>
           </nav>
+          <TimelineControl />
         </aside>
         <main className="stack">
           <Outlet />

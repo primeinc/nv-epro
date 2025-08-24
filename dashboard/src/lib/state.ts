@@ -10,6 +10,7 @@ export interface Filters {
   department: string | 'All';
   vendor: string | 'All';
   date: DateRange;
+  excludeOutliers: boolean;
 }
 
 export interface StoreState {
@@ -35,11 +36,39 @@ const initialFilters: Filters = {
   department: 'All',
   vendor: 'All',
   date: { from: null, to: null }, // No date filter by default - show all data
+  excludeOutliers: false,
 };
 
 function compute(state: Omit<StoreState, 'filtered' | 'metrics' | 'vendorSummaries' | 'byMonthTotals' | 'statusCounts' | 'dailyCounts' | 'setPOs' | 'setFilters' | 'resetFilters'>): Pick<StoreState, 'filtered' | 'metrics' | 'vendorSummaries' | 'byMonthTotals' | 'statusCounts' | 'dailyCounts'> {
   const { allPOs, filters } = state;
+  
+  // Calculate outlier bounds if needed
+  let lowerBound = 0;
+  let upperBound = Infinity;
+  
+  if (filters.excludeOutliers && allPOs.length > 0) {
+    // Get all amounts and sort them
+    const amounts = allPOs.map(po => po.total_amount).sort((a, b) => a - b);
+    const n = amounts.length;
+    
+    // Calculate Q1 (25th percentile) and Q3 (75th percentile)
+    const q1Index = Math.floor(n * 0.25);
+    const q3Index = Math.floor(n * 0.75);
+    const q1 = amounts[q1Index];
+    const q3 = amounts[q3Index];
+    
+    // Calculate IQR and bounds (1.5 * IQR is standard for outlier detection)
+    const iqr = q3 - q1;
+    lowerBound = Math.max(0, q1 - 1.5 * iqr); // PO amounts can't be negative
+    upperBound = q3 + 1.5 * iqr;
+  }
+  
   const f = allPOs.filter(po => {
+    // Outlier filter
+    if (filters.excludeOutliers) {
+      if (po.total_amount < lowerBound || po.total_amount > upperBound) return false;
+    }
+    
     // Only apply date filter if dates are set
     if (filters.date.from || filters.date.to) {
       if (!inDateRange(po.sent_date, filters.date.from, filters.date.to)) return false;
