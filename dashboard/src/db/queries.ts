@@ -239,6 +239,70 @@ export async function getVendorDepartments(conn: duckdb.AsyncDuckDBConnection, v
   }
 }
 
+export async function getVendorsByLatestPO(conn: duckdb.AsyncDuckDBConnection, limit: number = 50, offset: number = 0): Promise<any[]> {
+  try {
+    const result = await conn.query(`
+      WITH vendor_latest AS (
+        SELECT 
+          vendor_name,
+          MAX(sent_date) as latest_po_date,
+          COUNT(*) as total_pos,
+          CAST(SUM(CAST(total_amount AS DOUBLE)) AS DOUBLE) as total_amount,
+          CAST(AVG(CAST(total_amount AS DOUBLE)) AS DOUBLE) as avg_amount
+        FROM purchase_orders
+        WHERE vendor_name IS NOT NULL AND sent_date IS NOT NULL
+        GROUP BY vendor_name
+      )
+      SELECT 
+        v.vendor_name,
+        v.latest_po_date,
+        v.total_pos,
+        v.total_amount,
+        v.avg_amount,
+        p.po_id as latest_po_id,
+        CAST(p.total_amount AS DOUBLE) as latest_po_amount,
+        p.status_category as latest_po_status,
+        p.department as latest_department
+      FROM vendor_latest v
+      LEFT JOIN purchase_orders p ON 
+        p.vendor_name = v.vendor_name AND 
+        p.sent_date = v.latest_po_date
+      ORDER BY v.latest_po_date DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `);
+    
+    return result.toArray().map((row: any) => ({
+      vendor: row.vendor_name,
+      latestPODate: row.latest_po_date,
+      totalPOs: typeof row.total_pos === 'bigint' ? Number(row.total_pos) : Number(row.total_pos),
+      totalAmount: Number(row.total_amount),
+      avgAmount: Number(row.avg_amount),
+      latestPOId: row.latest_po_id,
+      latestPOAmount: Number(row.latest_po_amount),
+      latestPOStatus: row.latest_po_status,
+      latestDepartment: row.latest_department
+    }));
+  } catch (e) {
+    console.error('Error getting vendors by latest PO:', e);
+    return [];
+  }
+}
+
+export async function getTotalVendorCount(conn: duckdb.AsyncDuckDBConnection): Promise<number> {
+  try {
+    const result = await conn.query(`
+      SELECT CAST(COUNT(DISTINCT vendor_name) AS DOUBLE) as count
+      FROM purchase_orders
+      WHERE vendor_name IS NOT NULL
+    `);
+    return Number(result.toArray()[0]?.count) || 0;
+  } catch (e) {
+    console.error('Error getting vendor count:', e);
+    return 0;
+  }
+}
+
 export async function getVendorMonthlyTrend(conn: duckdb.AsyncDuckDBConnection, vendorName: string): Promise<MonthlySummary[]> {
   try {
     const result = await conn.query(`
