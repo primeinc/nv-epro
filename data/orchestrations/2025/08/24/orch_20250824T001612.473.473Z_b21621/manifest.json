@@ -1,0 +1,727 @@
+{
+  "schemaVersion": "1.0",
+  "orchestration": {
+    "id": "orch_20250824T001612.473.473Z_b21621",
+    "command": "node orchestrate.js run auto",
+    "startTime": "2025-08-24T00:16:12.473Z",
+    "endTime": "2025-08-24T00:16:12.476Z",
+    "durationMs": 3,
+    "tasksTotal": 44,
+    "tasksSucceeded": 7,
+    "tasksFailed": 0,
+    "tasksSkipped": 7
+  },
+  "tasks": [
+    {
+      "index": 0,
+      "dataset": "contracts",
+      "kind": "snapshot",
+      "label": "all",
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 1,
+      "dataset": "bids",
+      "kind": "snapshot",
+      "label": "all",
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 2,
+      "dataset": "vendors",
+      "kind": "snapshot",
+      "label": "all",
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 3,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 4,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 5,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 6,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "skipped": true,
+        "error": null,
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 7,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 8,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 9,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 10,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 11,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 12,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 13,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 14,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 15,
+      "dataset": "contracts",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 16,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 17,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 18,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 19,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 20,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 21,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 22,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 23,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 24,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 25,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 26,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 27,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 28,
+      "dataset": "bids",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 29,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 30,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 31,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 32,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 33,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 34,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 35,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 36,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 37,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 38,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 39,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 40,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 41,
+      "dataset": "vendors",
+      "kind": "note",
+      "label": null,
+      "startDate": null,
+      "endDate": null,
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 42,
+      "dataset": "purchase_orders",
+      "kind": "window",
+      "label": "01312018_to_06302023",
+      "startDate": "01/31/2018",
+      "endDate": "06/30/2023",
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    },
+    {
+      "index": 43,
+      "dataset": "purchase_orders",
+      "kind": "window",
+      "label": "07012023_to_09282025",
+      "startDate": "07/01/2023",
+      "endDate": "09/28/2025",
+      "result": {
+        "ok": false,
+        "exitCode": null,
+        "skipped": false,
+        "error": "Task interrupted - no result available",
+        "runId": null,
+        "manifestPath": null
+      }
+    }
+  ],
+  "validation": null,
+  "environment": {
+    "dataRoot": "/home/runner/work/nevada-procurement-data/nevada-procurement-data/data",
+    "platform": "linux",
+    "nodeVersion": "v22.18.0",
+    "cwd": "/home/runner/work/nevada-procurement-data/nevada-procurement-data"
+  }
+}
