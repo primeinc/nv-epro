@@ -1,0 +1,145 @@
+{
+  "timestamp": "2025-08-24T00:10:34.919Z",
+  "summary": {
+    "totalTested": 15,
+    "totalPassed": 15,
+    "totalFailed": 0,
+    "successRate": "100.00%",
+    "duration": "26.6s"
+  },
+  "datasets": {
+    "purchase_orders": {
+      "dataset": "purchase_orders",
+      "urls": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": [],
+      "samples": [
+        {
+          "id": "R59848",
+          "url": "https://nevadaepro.com/bso/external/purchaseorder/poSummary.sdo?docId=R59848&releaseNbr=0&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "IGOR 535881",
+          "url": "https://nevadaepro.com/bso/external/purchaseorder/poSummary.sdo?docId=IGOR+535881&releaseNbr=0&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "IGOR 472757",
+          "url": "https://nevadaepro.com/bso/external/purchaseorder/poSummary.sdo?docId=IGOR+472757&releaseNbr=0&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        }
+      ]
+    },
+    "contracts": {
+      "dataset": "contracts",
+      "urls": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": [],
+      "samples": [
+        {
+          "id": "BRDCOM-NV23-16122",
+          "url": "https://nevadaepro.com/bso/external/purchaseorder/poSummary.sdo?docId=BRDCOM-NV23-16122&releaseNbr=0&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "99SWC-NV26-26028",
+          "url": "https://nevadaepro.com/bso/external/purchaseorder/poSummary.sdo?docId=99SWC-NV26-26028&releaseNbr=0&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "99SWC-NV26-25911",
+          "url": "https://nevadaepro.com/bso/external/purchaseorder/poSummary.sdo?docId=99SWC-NV26-25911&releaseNbr=0&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        }
+      ]
+    },
+    "bids": {
+      "dataset": "bids",
+      "urls": 6,
+      "passed": 6,
+      "failed": 0,
+      "errors": [],
+      "samples": [
+        {
+          "id": "24VS-S3459",
+          "url": "https://nevadaepro.com/bso/external/bidDetail.sdo?docId=24VS-S3459&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "72DOW-S3458",
+          "url": "https://nevadaepro.com/bso/external/bidDetail.sdo?docId=72DOW-S3458&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "72DOW-S3458 (holder list)",
+          "url": "https://nevadaepro.com/bso/external/bidAckList.sdo?bidId=72DOW-S3458",
+          "success": true,
+          "status": 200,
+          "note": "Should have public holder list"
+        },
+        {
+          "id": "30DOE-S3449",
+          "url": "https://nevadaepro.com/bso/external/bidDetail.sdo?docId=30DOE-S3449&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "65DPS-S3437",
+          "url": "https://nevadaepro.com/bso/external/bidDetail.sdo?docId=65DPS-S3437&external=true&parentUrl=close",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "65DPS-S3437 (holder list)",
+          "url": "https://nevadaepro.com/bso/external/bidAckList.sdo?bidId=65DPS-S3437",
+          "success": true,
+          "status": 200,
+          "note": "Should have public holder list"
+        }
+      ]
+    },
+    "vendors": {
+      "dataset": "vendors",
+      "urls": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": [],
+      "samples": [
+        {
+          "id": "VEN30280",
+          "url": "https://nevadaepro.com/bso/external/vendor/vendorProfileOrgInfo.sda?external=true&vendorId=VEN30280",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "VEN28064",
+          "url": "https://nevadaepro.com/bso/external/vendor/vendorProfileOrgInfo.sda?external=true&vendorId=VEN28064",
+          "success": true,
+          "status": 200
+        },
+        {
+          "id": "VEN28487",
+          "url": "https://nevadaepro.com/bso/external/vendor/vendorProfileOrgInfo.sda?external=true&vendorId=VEN28487",
+          "success": true,
+          "status": 200
+        }
+      ]
+    }
+  },
+  "config": {
+    "sampleSize": 3,
+    "dataRoot": "/home/runner/work/nevada-procurement-data/nevada-procurement-data/data",
+    "headless": true
+  }
+}

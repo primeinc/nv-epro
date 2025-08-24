@@ -1,0 +1,91 @@
+{
+  "run_id": "bronze_batch_1755994235893",
+  "timestamp": "2025-08-24T00:10:38.431Z",
+  "datasets_processed": 7,
+  "successful": 1,
+  "skipped": 6,
+  "failed": 0,
+  "results": [
+    {
+      "dataset": "bids",
+      "file": "bid_all.csv",
+      "run": "run_20250823T234606.835Z_9fd7d37",
+      "success": true,
+      "skipped": true,
+      "source_file_hash": "ee88ce17fe089b18855c107979bc3cb707824db062d204404737c96d6c700673",
+      "bronze_path": "data/bronze/bids/ingest_date=2025-08-24/sha256=ee88ce17fe089b18855c107979bc3cb707824db062d204404737c96d6c700673/data.parquet",
+      "message": "File already ingested to Bronze"
+    },
+    {
+      "dataset": "bids",
+      "file": "bid_all.csv",
+      "run": "run_20250824T000820.861Z_8e635f1",
+      "success": true,
+      "skipped": false,
+      "bronze_path": "data/bronze/bids/ingest_date=2025-08-24/sha256=6995287a29d492cbcbbe91cd9bd38821a2a5015156d6c1ca735c943157fbd967/data.parquet",
+      "source_file": "data/nevada-epro/bids/raw/2025/08/24/run_20250824T000820.861Z_8e635f1/files/bid_all.csv",
+      "source_file_hash": "6995287a29d492cbcbbe91cd9bd38821a2a5015156d6c1ca735c943157fbd967",
+      "source_file_bytes": 557145,
+      "row_count": 2674,
+      "unique_rows": 2674,
+      "ingested_at": "2025-08-24T00:10:35.969Z",
+      "ingest_duration_ms": 60,
+      "run_id": "run_20250824T000820.861Z_8e635f1",
+      "schema_version": "v0.1.0",
+      "validation": {
+        "passed": true,
+        "row_count": 2674,
+        "unique_rows": 2674
+      }
+    },
+    {
+      "dataset": "purchase_orders",
+      "file": "all_consolidated",
+      "success": true,
+      "skipped": true,
+      "source_file_hash": "edc20111ca8128190da3ebc338cb648c7d1573cc5d9f711dd33e7b9775c78962",
+      "bronze_path": "data/bronze/purchase_orders/ingest_date=2025-08-24/sha256=edc20111ca8128190da3ebc338cb648c7d1573cc5d9f711dd33e7b9775c78962/data.parquet",
+      "message": "File already ingested to Bronze"
+    },
+    {
+      "dataset": "contracts",
+      "file": "contract_all.csv",
+      "run": "run_20250823T234606.817Z_9fd7d37",
+      "success": true,
+      "skipped": true,
+      "source_file_hash": "a4f6c783f00fac604800af7102901b921a9171335a74324e65c91c339926a46a",
+      "bronze_path": "data/bronze/contracts/ingest_date=2025-08-24/sha256=a4f6c783f00fac604800af7102901b921a9171335a74324e65c91c339926a46a/data.parquet",
+      "message": "File already ingested to Bronze"
+    },
+    {
+      "dataset": "contracts",
+      "file": "contract_all.csv",
+      "run": "run_20250824T000820.862Z_8e635f1",
+      "success": true,
+      "skipped": true,
+      "source_file_hash": "a4f6c783f00fac604800af7102901b921a9171335a74324e65c91c339926a46a",
+      "bronze_path": "data/bronze/contracts/ingest_date=2025-08-24/sha256=a4f6c783f00fac604800af7102901b921a9171335a74324e65c91c339926a46a/data.parquet",
+      "message": "File already ingested to Bronze"
+    },
+    {
+      "dataset": "vendors",
+      "file": "vendor_all.csv",
+      "run": "run_20250823T234612.375Z_9fd7d37",
+      "success": true,
+      "skipped": true,
+      "source_file_hash": "c5c678fa1fa305bcb2cfce9678a62aceafc0137fcf94d1e4daa67bd04ce67b09",
+      "bronze_path": "data/bronze/vendors/ingest_date=2025-08-24/sha256=c5c678fa1fa305bcb2cfce9678a62aceafc0137fcf94d1e4daa67bd04ce67b09/data.parquet",
+      "message": "File already ingested to Bronze"
+    },
+    {
+      "dataset": "vendors",
+      "file": "vendor_all.csv",
+      "run": "run_20250824T000826.216Z_8e635f1",
+      "success": true,
+      "skipped": true,
+      "source_file_hash": "c5c678fa1fa305bcb2cfce9678a62aceafc0137fcf94d1e4daa67bd04ce67b09",
+      "bronze_path": "data/bronze/vendors/ingest_date=2025-08-24/sha256=c5c678fa1fa305bcb2cfce9678a62aceafc0137fcf94d1e4daa67bd04ce67b09/data.parquet",
+      "message": "File already ingested to Bronze"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "dataset": "bids",
+  "bronze_path": "data/bronze/bids/ingest_date=2025-08-24/sha256=6995287a29d492cbcbbe91cd9bd38821a2a5015156d6c1ca735c943157fbd967/data.parquet",
+  "source_file": "data/nevada-epro/bids/raw/2025/08/24/run_20250824T000820.861Z_8e635f1/files/bid_all.csv",
+  "source_file_hash": "6995287a29d492cbcbbe91cd9bd38821a2a5015156d6c1ca735c943157fbd967",
+  "source_file_bytes": 557145,
+  "row_count": 2674,
+  "unique_rows": 2674,
+  "ingested_at": "2025-08-24T00:10:35.969Z",
+  "ingest_duration_ms": 60,
+  "run_id": "run_20250824T000820.861Z_8e635f1",
+  "schema_version": "v0.1.0",
+  "validation": {
+    "passed": true,
+    "row_count": 2674,
+    "unique_rows": 2674,
+    "status": "healthy",
+    "timestamp": "2025-08-24T00:10:38.836Z",
+    "run_id": "bronze-cfdf7a351d7bd79c",
+    "has_warnings": false,
+    "statistics": {
+      "evaluated_expectations": 14,
+      "successful_expectations": 14,
+      "unsuccessful_expectations": 0
+    },
+    "failures": [],
+    "warnings": [],
+    "metrics": {
+      "volume": {
+        "row_count": 2674,
+        "unique_rows": 2674,
+        "duplicate_rows": 0,
+        "bytes_min": 557145,
+        "bytes_max": 557145,
+        "bytes_avg": 557145
+      },
+      "freshness": {
+        "first_ingested": "2025-08-24T00:10:35.927Z",
+        "last_ingested": "2025-08-24T00:10:35.927Z",
+        "age_hours": 0.0008197222222222222,
+        "ingestion_days": 1
+      }
+    }
+  }
+}

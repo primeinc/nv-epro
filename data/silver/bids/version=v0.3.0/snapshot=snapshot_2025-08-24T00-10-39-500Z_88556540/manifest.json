@@ -1,0 +1,13 @@
+{
+  "dataset": "bids",
+  "snapshot_id": "snapshot_2025-08-24T00-10-39-500Z_88556540",
+  "transform_version": "v0.3.0",
+  "transform_sql": "transforms/silver/bids_v0.3.0.sql",
+  "bronze_state_hash": "e66cc61ff19d5104fbdf81e43443d55951d64c36002218a8b3ff0749a5a2fa6d",
+  "bronze_files": 2,
+  "bronze_rows": 5348,
+  "silver_rows": 2674,
+  "filtered_rows": 2674,
+  "created_at": "2025-08-24T00:10:39.549Z",
+  "silver_path": "data/silver/bids/version=v0.3.0/snapshot=snapshot_2025-08-24T00-10-39-500Z_88556540/data.parquet"
+}
