@@ -247,8 +247,8 @@ body {
 /* Dataset Overview Cards */
 .dataset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-  gap: var(--space-sm);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: var(--space-lg);
 }
 
@@ -332,8 +332,8 @@ body {
 
 .po-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-  gap: var(--space-sm);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: var(--space-md);
 }
 

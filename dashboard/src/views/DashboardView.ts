@@ -107,6 +107,22 @@ export function renderOverviewContent(
           <span class="meta-item">Across all datasets</span>
         </div>
       </div>
+      
+      ${departments.slice(0, 4).map((dept, i) => `
+        <div class="dataset-card">
+          <div class="dataset-card-header">
+            <div class="dataset-icon" style="background: rgba(239, 68, 68, 0.1); color: #EF4444;">
+              ${Icons.building}
+            </div>
+            <div class="dataset-label">${dept.department.substring(0, 20)}</div>
+          </div>
+          <div class="dataset-value">$${(dept.total / 1e6).toFixed(1)}M</div>
+          <div class="dataset-subtitle">Department Spend</div>
+          <div class="dataset-meta">
+            <span class="meta-item">${dept.po_count} orders</span>
+          </div>
+        </div>
+      `).join('')}
     </div>
     
     <!-- Purchase Orders Section -->
