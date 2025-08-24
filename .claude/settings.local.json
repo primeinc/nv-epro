@@ -16,9 +16,21 @@
       "mcp__context7__get-library-docs",
       "Bash(gh api:*)",
       "Bash(gh run view:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(duckdb:*)",
+      "WebSearch",
+      "Bash(find:*)",
+      "Bash(powershell:*)",
+      "mcp__playwright__browser_wait_for",
+      "Bash(python:*)",
+      "Bash(jupyter nbconvert:*)",
+      "Bash(jupyter execute:*)",
+      "Bash(set JUPYTER_CONFIG_DIR=%cd%)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\will\\dev\\data"
+    ]
   }
 }

@@ -114,12 +114,12 @@ export function renderOverviewContent(
             <div class="dataset-icon" style="background: rgba(239, 68, 68, 0.1); color: #EF4444;">
               ${Icons.building}
             </div>
-            <div class="dataset-label">${dept.department.substring(0, 20)}</div>
+            <div class="dataset-label">${dept.department.substring(0, 15)}</div>
           </div>
           <div class="dataset-value">$${(dept.total / 1e6).toFixed(1)}M</div>
           <div class="dataset-subtitle">Department Spend</div>
           <div class="dataset-meta">
-            <span class="meta-item">${dept.po_count} orders</span>
+            <span class="meta-item">Department total</span>
           </div>
         </div>
       `).join('')}
