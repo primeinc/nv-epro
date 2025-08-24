@@ -34,14 +34,40 @@ export default function CalendarHeatmap() {
   // Get previous year's data for background comparison
   const prevYear = (parseInt(year) - 1).toString()
   const prevYearData = useMemo(() => {
-    // Map previous year data to current year dates for overlay
+    // Map previous year data to same day of week in current year
     return dailyCounts
       .filter(d => d.date.startsWith(prevYear))
-      .map(d => ({
-        ...d,
-        // Shift the date to current year for alignment
-        date: year + d.date.slice(4)
-      }))
+      .map(d => {
+        // Parse the date components
+        const [prevYearStr, month, day] = d.date.split('-')
+        
+        // Get day of week for this date in previous year
+        const prevDate = new Date(d.date)
+        const prevDayOfWeek = prevDate.getDay()
+        
+        // Get day of week for same date in current year
+        const currentYearSameDate = new Date(`${year}-${month}-${day}`)
+        const currentYearDayOfWeek = currentYearSameDate.getDay()
+        
+        // Calculate how many days to shift
+        let dayShift = prevDayOfWeek - currentYearDayOfWeek
+        if (dayShift > 3) dayShift -= 7
+        if (dayShift < -3) dayShift += 7
+        
+        // Apply the shift
+        const shiftedDate = new Date(currentYearSameDate)
+        shiftedDate.setDate(shiftedDate.getDate() + dayShift)
+        
+        // Format back to YYYY-MM-DD
+        const shiftedDateStr = shiftedDate.toISOString().slice(0, 10)
+        
+        return {
+          ...d,
+          date: shiftedDateStr
+        }
+      })
+      // Keep all dates that fall within the current year
+      .filter(d => d.date.startsWith(year))
   }, [dailyCounts, prevYear, year])
   
   // Get max values for better color scaling
@@ -91,23 +117,60 @@ export default function CalendarHeatmap() {
         return content
       }
     },
-    visualMap: {
-      min: 0, 
-      max: maxCount,
-      calculable: true, 
-      orient: 'horizontal', 
-      left: 'center', 
-      bottom: 0,
-      inRange: {
-        color: ['#1a1f2e', '#3b4252', '#6366f1', '#8b5cf6', '#d946ef']
+    visualMap: [
+      // Visual map for previous year data (orange) - bottom slider
+      {
+        min: 0,
+        max: maxCount,
+        calculable: true,
+        orient: 'horizontal', 
+        left: '10%',
+        right: '55%',
+        bottom: 0,
+        inRange: {
+          color: ['rgba(251, 146, 60, 0.1)', 'rgba(251, 146, 60, 0.8)']
+        },
+        text: [prevYear, ''],
+        textStyle: {
+          color: '#fb923c',
+          fontSize: 10
+        },
+        seriesIndex: 0,
+        dimension: 1,
+        handleStyle: {
+          color: '#fb923c'
+        },
+        outOfRange: {
+          color: 'transparent'
+        }
       },
-      text: ['High Activity', 'Low Activity'],
-      textStyle: {
-        color: '#94a3b8',
-        fontSize: 11
-      },
-      seriesIndex: 1 // Apply to heatmap series (second series)
-    },
+      // Visual map for current year data (blue-purple) - bottom slider
+      {
+        min: 0, 
+        max: maxCount,
+        calculable: true, 
+        orient: 'horizontal', 
+        left: '55%',
+        right: '10%',
+        bottom: 0,
+        inRange: {
+          color: ['#1a1f2e', '#3b4252', '#6366f1', '#8b5cf6', '#d946ef']
+        },
+        text: [year, ''],
+        textStyle: {
+          color: '#6366f1',
+          fontSize: 10
+        },
+        seriesIndex: 1,
+        dimension: 1,
+        handleStyle: {
+          color: '#6366f1'
+        },
+        outOfRange: {
+          color: 'transparent'
+        }
+      }
+    ],
     calendar: { 
       range: year, 
       top: 30, 
@@ -145,19 +208,15 @@ export default function CalendarHeatmap() {
       }
     },
     series: [
-      // Previous year data (shown in orange where current year has no data)
+      // Previous year data (all dates)
       {
-        type: 'scatter',
+        type: 'heatmap',
         coordinateSystem: 'calendar',
-        symbolSize: 15,
-        data: prevYearData
-          .filter(pd => !data.some(d => d.date === pd.date))
-          .map(pd => ({
-            value: [pd.date, pd.count],
-            itemStyle: {
-              color: `rgba(251, 146, 60, ${0.3 + Math.min(pd.count / maxCount, 1) * 0.5})`
-            }
-          }))
+        data: prevYearData.map(pd => [pd.date, pd.count]),
+        itemStyle: {
+          borderColor: '#2e3447',
+          borderWidth: 1
+        }
       },
       // Current year data
       {
