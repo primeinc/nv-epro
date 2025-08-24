@@ -88,6 +88,16 @@ function compute(state: Omit<StoreState, 'filtered' | 'metrics' | 'vendorSummari
   const monthMap = new Map<string, { total: number; count: number }>();
   const statusMap = new Map<string, number>();
   const dayMap = new Map<string, { count: number; total: number }>();
+  
+  // Calculate dailyCounts from ALL data for calendar heatmap
+  const allDayMap = new Map<string, { count: number; total: number }>();
+  for (const po of allPOs) {
+    const day = po.sent_date.slice(0, 10);
+    const dm = allDayMap.get(day) ?? { count: 0, total: 0 }; 
+    dm.count += 1; 
+    dm.total += po.total_amount; 
+    allDayMap.set(day, dm);
+  }
 
   for (const po of f) {
     const v = vendorMap.get(po.vendor_name) ?? { total: 0, count: 0, first: po.sent_date, last: po.sent_date };

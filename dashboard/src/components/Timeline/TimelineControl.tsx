@@ -78,7 +78,6 @@ export default function TimelineControl() {
             value={filters.date.from || ''}
             onChange={handleFromChange}
             min="2018-01-31"
-            max={dayjs().format('YYYY-MM-DD')}
           />
         </label>
         <label>
@@ -88,7 +87,6 @@ export default function TimelineControl() {
             value={filters.date.to || ''}
             onChange={handleToChange}
             min="2018-01-31"
-            max={dayjs().format('YYYY-MM-DD')}
           />
         </label>
       </div>

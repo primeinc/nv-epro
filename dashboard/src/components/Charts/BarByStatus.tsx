@@ -15,10 +15,25 @@ export default function BarByStatus() {
   }
   
   const option: EChartsOption = useMemo(() => ({
-    tooltip: { trigger: 'item' },
-    grid: { left: 24, right: 12, top: 20, bottom: 24 },
+    tooltip: { 
+      trigger: 'item',
+      formatter: (params: any) => {
+        const count = params.value.toLocaleString()
+        return `${params.name}<br/><strong>${count}</strong> Purchase Orders`
+      }
+    },
+    grid: { left: 48, right: 12, top: 20, bottom: 24 },
     xAxis: { type: 'category', data: statusCounts.map(s => s.status) },
-    yAxis: { type: 'value' },
+    yAxis: { 
+      type: 'value',
+      axisLabel: {
+        formatter: (v: number) => {
+          if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
+          if (v >= 1000) return `${(v/1000).toFixed(0)}K`
+          return v.toString()
+        }
+      }
+    },
     series: [{ 
       type: 'bar', 
       data: statusCounts.map(s => ({
