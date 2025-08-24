@@ -11,8 +11,13 @@ import {
   getVendorDepartments,
   getVendorMonthlyTrend
 } from './db/queries';
+import { searchAll, searchVendors, searchPurchaseOrders, searchByDepartment } from './db/search-queries';
 import { renderDashboard } from './views/DashboardView';
 import { renderVendorDetail } from './views/VendorDetailView';
+import { renderSearchResults } from './views/SearchResultsView';
+import { renderSearchBar, setupSearchHandlers, type SearchOptions } from './components/SearchBar';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { ErrorMessage } from './components/ErrorMessage';
 import { setAppState, appState, updateView } from './state';
 
 export async function showDashboard() {
@@ -27,10 +32,58 @@ export async function showDashboard() {
       getStatusDistribution(appState.conn)
     ]);
     
-    renderDashboard(metrics, vendors, monthly, departments, statuses);
+    // Create search bar
+    const searchBar = renderSearchBar(handleSearch);
+    
+    // Render dashboard with search bar
+    renderDashboard(metrics, vendors, monthly, departments, statuses, searchBar);
+    
+    // Setup search handlers after DOM is ready
+    setTimeout(() => {
+      setupSearchHandlers(handleSearch, () => showDashboard());
+    }, 0);
+    
   } catch (error) {
     console.error('Error loading dashboard:', error);
     showError(`Failed to load dashboard: ${error}`);
+  }
+}
+
+async function handleSearch(options: SearchOptions) {
+  if (!options.searchTerm) {
+    showDashboard();
+    return;
+  }
+  
+  showLoading(`Searching for "${options.searchTerm}"...`);
+  
+  try {
+    let results;
+    
+    switch (options.searchType) {
+      case 'vendor':
+        const vendors = await searchVendors(appState.conn, options.searchTerm);
+        results = { vendors, purchaseOrders: [], totalResults: vendors.length };
+        break;
+      
+      case 'po':
+        const pos = await searchPurchaseOrders(appState.conn, options.searchTerm);
+        results = { vendors: [], purchaseOrders: pos, totalResults: pos.length };
+        break;
+      
+      case 'department':
+        const deptPOs = await searchByDepartment(appState.conn, options.searchTerm);
+        results = { vendors: [], purchaseOrders: deptPOs, totalResults: deptPOs.length };
+        break;
+      
+      default:
+        results = await searchAll(appState.conn, options.searchTerm);
+    }
+    
+    renderSearchResults(results, options.searchTerm);
+  } catch (error) {
+    console.error('Error searching:', error);
+    showError(`Search failed: ${error}`);
   }
 }
 
@@ -59,28 +112,15 @@ export async function showVendorDetail(vendorName: string) {
 
 function showLoading(message: string = 'Loading...') {
   const app = document.getElementById('app')!;
-  app.innerHTML = `
-    <div style="padding: 40px; text-align: center;">
-      <div style="font-family: system-ui, -apple-system, sans-serif;">
-        ${message}
-      </div>
-    </div>
-  `;
+  app.innerHTML = LoadingSpinner({ message });
 }
 
 function showError(message: string) {
   const app = document.getElementById('app')!;
-  app.innerHTML = `
-    <div style="padding: 40px; text-align: center; color: red;">
-      <h1>Error</h1>
-      <p>${message}</p>
-      ${appState ? `
-        <button onclick="window.showDashboard()" style="margin-top: 20px; padding: 8px 16px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          Back to Dashboard
-        </button>
-      ` : ''}
-    </div>
-  `;
+  app.innerHTML = ErrorMessage({ 
+    message, 
+    showBackButton: !!appState 
+  });
 }
 
 function showNoData() {

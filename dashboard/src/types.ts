@@ -43,6 +43,7 @@ export interface PurchaseOrder {
   buyer_name: string | null;
   status_category: string;
   description: string | null;
+  vendor_name?: string;
 }
 
 export interface VendorDetail {
