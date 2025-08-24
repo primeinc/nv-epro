@@ -1,0 +1,99 @@
+name: Deploy dashboard to GitHub Pages
+
+on:
+  # Rebuild when dashboard code changes
+  push:
+    branches: [ dev ]
+    paths:
+      - 'dashboard/**'
+      - '.github/workflows/pages.yml'
+  # Rebuild after data pipeline succeeds
+  workflow_run:
+    workflows: ["Orchestrator Auto"]
+    types: [completed]
+  # Manual kick if you feel like pressing buttons
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev (dashboard code)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Checkout data branch side-by-side
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: _data
+
+      - name: Stage Parquet into public + create manifest
+        run: |
+          set -euo pipefail
+          mkdir -p dashboard/public/data/silver
+          
+          # Copy silver data if it exists
+          if [ -d "_data/data/silver" ]; then
+            rsync -av --delete --mkpath _data/data/silver/ dashboard/public/data/silver/
+          else
+            echo "No silver data found in data branch yet"
+          fi
+
+          cd dashboard/public
+          echo '{ "parquet": [' > manifest.json
+          if find data/silver -type f -name '*.parquet' 2>/dev/null | while read -r file; do
+            echo "\"$file\","
+          done | head -n -1 > /tmp/files.txt && [ -s /tmp/files.txt ]; then
+            cat /tmp/files.txt >> manifest.json
+            # Add last file without comma
+            find data/silver -type f -name '*.parquet' 2>/dev/null | tail -1 | xargs -I{} echo '"{}"' >> manifest.json
+          fi
+          echo '] }' >> manifest.json
+          
+          echo "Generated manifest:"
+          cat manifest.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install deps
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Build site
+        working-directory: dashboard
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTIONS: 'true'
+        run: npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/dist
+
+      - name: Deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,8 @@
+{
+  "parquet": [
+    "data/silver/purchase_orders.parquet",
+    "data/silver/contracts.parquet",
+    "data/silver/bids.parquet",
+    "data/silver/vendors.parquet"
+  ]
+}
